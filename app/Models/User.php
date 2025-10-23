@@ -14,6 +14,17 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
+     * Désactiver l'auto-incrémentation de l'ID.
+     */
+    public $incrementing = false;
+
+    /**
+     * Spécifier le type de la clé primaire (UUID = string).
+     */
+    protected $keyType = 'string';
+
+    /**
+
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -43,4 +54,15 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->{$model->getKeyName()})) {
+                $model->{$model->getKeyName()} = (string) Str::uuid();
+            }
+        });
+    }
 }
