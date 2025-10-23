@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
  * )
  */
 
-class ComptesController extends Controller
+class CompteController extends Controller
 {
     /**
      * @OA\Get(

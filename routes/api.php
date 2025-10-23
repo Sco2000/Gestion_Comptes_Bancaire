@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CompteController;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,8 +15,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::prefix('v1')->group(function(){
+    Route::get('/comptes', [CompteController::class, 'index']);
+    Route::get('/comptes/{compteId}', [CompteController::class, 'show']);
+    Route::post('/comptes', [CompteController::class, 'store']);
 });
-
-Route::apiResource('comptes', \App\Http\Controllers\ComptesController::class)->only(['index']);
