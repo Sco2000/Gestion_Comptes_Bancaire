@@ -1,9 +1,14 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Controllers\Controller;
 use App\Models\Compte;
 use Illuminate\Http\Request;
+use App\Http\Services\CompteService;
+use App\Http\Resources\CompteResource;
+use App\Http\Requests\CompteRequest;
+
 
 /**
  * @OA\Info(
@@ -15,6 +20,11 @@ use Illuminate\Http\Request;
 
 class CompteController extends Controller
 {
+
+    public function __construct(CompteService $compteService)
+    {
+        $this->compteService = $compteService;
+    }
     /**
      * @OA\Get(
      *     path="/api/v1/comptes",
@@ -109,71 +119,43 @@ class CompteController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Compte::query();
 
-        // Filtrage par type
-        if ($request->has('type') && in_array($request->type, ['epargne', 'cheque'])) {
-            $query->where('type', $request->type);
-        }
-
-        // Filtrage par statut
-        if ($request->has('statut') && in_array($request->statut, ['actif', 'bloque'])) {
-            $query->where('statut', $request->statut);
-        }
-
-        // Recherche par numéro de compte ou nom du titulaire
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('numero_compte', 'like', "%{$search}%")
-                  ->orWhere('titulaire', 'like', "%{$search}%");
-            });
-        }
-
-        // Tri
+        $filters = $request->only(['type', 'statut', 'search']);
         $sort = $request->get('sort', 'created_at');
         $order = $request->get('order', 'desc');
-        $query->orderBy($sort, $order);
-
-        // Pagination
         $limit = min($request->get('limit', 10), 100);
-        $comptes = $query->paginate($limit);
+        $query = Compte::query();
 
-        return response()->json([
-            'success' => true,
-            'data' => $comptes->items(),
-            'pagination' => [
-                'current_page' => $comptes->currentPage(),
-                'per_page' => $comptes->perPage(),
-                'total' => $comptes->total(),
-                'last_page' => $comptes->lastPage(),
-                'from' => $comptes->firstItem(),
-                'to' => $comptes->lastItem(),
-                'links' => [
-                    'first' => $comptes->url(1),
-                    'last' => $comptes->url($comptes->lastPage()),
-                    'prev' => $comptes->previousPageUrl(),
-                    'next' => $comptes->nextPageUrl(),
-                ],
-            ],
-            'message' => 'Liste des comptes',
-        ]);
+        $user = $request->user();
+
+        $comptes = $this->compteService->listComptes($filters, $sort, $order, $limit, $user);
+        // Liaison via le conteneur (pas de new / pas de static)
+        $compteCollection = app('compte.resource.collection', ['collection' => $comptes]);
+
+        return $this->successResponse($compteCollection, 'Liste des comptes');
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(CompteRequest $request)
     {
-        //
+        $data = $request->validated();
+        $compte = $this->compteService->createCompte($data);
+
+        $compteResource = app(CompteResource::class, ['compte' => $compte]);
+
+        return $this->successResponse($compteResource, 'Compte créé avec succès', 201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(string $compteId)
     {
-        //
+        $compte = $this->compteService->getCompte($compteId);
+        $compteResource = app(CompteResource::class, ['compte' => $compte]);
+        return $this->successResponse($compteResource, 'Détails du compte');
     }
 
     /**

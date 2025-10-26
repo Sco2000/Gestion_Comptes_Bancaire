@@ -2,29 +2,37 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Client;
+use App\Models\Scopes\NonArchiveScope;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Compte extends Model
 {
     use HasFactory;
-
+    public $incrementing = false;
+    protected $keyType = 'string';
     protected $fillable = [
-        'uuid',
+        'client_id',
         'numero_compte',
-        'titulaire',
         'type',
         'solde',
-        'devise',
         'date_creation',
         'statut',
-        'motif_blocage',
-        'metadata',
     ];
 
-    protected $casts = [
-        'solde' => 'decimal:2',
-        'date_creation' => 'datetime',
-        'metadata' => 'array',
-    ];
+    protected static function booted()
+    {
+        static::addGlobalScope(new NonArchiveScope);
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
+
+    public function client()
+    {
+        return $this->belongsTo(Client::class);
+    }
 }

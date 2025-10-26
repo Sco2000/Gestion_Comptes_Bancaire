@@ -12,18 +12,20 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('comptes', function (Blueprint $table) {
-            $table->id();
-            $table->uuid('uuid')->unique();
+            $table->uuid('id')->primary();
+            $table->uuid('client_id'); // clé étrangère vers clients
             $table->string('numero_compte')->unique();
-            $table->string('titulaire');
             $table->enum('type', ['epargne', 'cheque']);
             $table->decimal('solde', 15, 2);
-            $table->string('devise')->default('FCFA');
             $table->dateTime('date_creation');
-            $table->enum('statut', ['actif', 'bloque'])->default('actif');
-            $table->text('motif_blocage')->nullable();
-            $table->json('metadata')->nullable();
+            $table->enum('statut', ['actif', 'bloque', 'archive'])->default('actif');
             $table->timestamps();
+
+            // index
+            $table->index(['client_id', 'numero_compte']);
+
+            // clé étrangère
+            $table->foreign('client_id')->references('id')->on('clients')->onDelete('cascade');
         });
     }
 
