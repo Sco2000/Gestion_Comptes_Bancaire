@@ -12,14 +12,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(CompteResource::class, function($app, array $params){
-            return new CompteResource($params['compte']);
+        // Liaison pour une ressource unique
+        $this->app->bind(CompteResource::class, function ($app, $params = []) {
+            $compte = $params['compte'] ?? null;
+            return new CompteResource($compte);
         });
 
+        // Liaison pour une collection de ressources
         $this->app->bind('compte.resource.collection', function ($app, $params = []) {
-        $collection = $params['collection'] ?? collect();
-        return CompteResource::collection($collection)->response()->getData(true);
-    });
+            $collection = $params['collection'] ?? collect();
+            return CompteResource::collection($collection)->response()->getData(true);
+        });
     }
 
     /**
