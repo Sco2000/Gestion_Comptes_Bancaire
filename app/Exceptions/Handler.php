@@ -27,6 +27,12 @@ class Handler extends ExceptionHandler
             //
         });
 
+        $this->renderable(function (\App\Exceptions\CustomApiException $e, $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json($e->toArray(), $e->getHttpStatusCode()->value);
+            }
+        });
+
         $this->renderable(function (\Illuminate\Auth\AuthenticationException $e, $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([

@@ -25,10 +25,18 @@ class ApiErrorHandlerMiddleware
         try {
             return $next($request);
         } catch (CustomApiException $e) {
+            Log::info('CustomApiException caught in middleware: ' . $e->getMessage());
             return $this->handleCustomApiException($e);
         } catch (Throwable $e) {
+            Log::info('Throwable caught in middleware: ' . get_class($e) . ' - ' . $e->getMessage());
             return $this->handleGenericException($e);
         }
+    }
+
+    public function terminate($request, $response)
+    {
+        // This method is called after the response is sent
+        Log::info('ApiErrorHandlerMiddleware terminated');
     }
 
     /**

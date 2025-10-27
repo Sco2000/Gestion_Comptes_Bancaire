@@ -2,6 +2,9 @@
 
 namespace App\Http\Services;
 
+use App\Enums\ErrorCode;
+use App\Enums\HttpStatusCode;
+use App\Exceptions\CustomApiException;
 use App\Http\Repositories\CompteRepository;
 use App\Models\Client;
 use App\Models\Compte;
@@ -126,7 +129,12 @@ class CompteService
 
         // Vérifier si le nouveau statut est autorisé pour ce type de compte
         if (isset($data['statut']) && !$compte->canChangeStatus($data['statut'])) {
-            throw new \InvalidArgumentException('Statut non autorisé pour ce type de compte');
+            throw new CustomApiException(
+                ErrorCode::COMPTE_STATUS_INVALID,
+                HttpStatusCode::BAD_REQUEST,
+                null,
+                ['compteId' => $id, 'requestedStatus' => $data['statut']]
+            );
         }
 
         return $this->repository->update($id, $data);

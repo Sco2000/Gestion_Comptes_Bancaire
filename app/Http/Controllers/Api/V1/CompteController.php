@@ -115,16 +115,20 @@ class CompteController extends Controller
      */
     public function index(Request $request)
     {
-        $filters = $request->only(['type', 'statut', 'search']);
-        $sort = $request->get('sort', 'created_at');
-        $order = $request->get('order', 'desc');
-        $limit = min($request->get('limit', 10), 100);
+        try {
+            $filters = $request->only(['type', 'statut', 'search']);
+            $sort = $request->get('sort', 'created_at');
+            $order = $request->get('order', 'desc');
+            $limit = min($request->get('limit', 10), 100);
 
-        $comptes = $this->compteService->listComptes($filters, $sort, $order, $limit, null);
-        // Liaison via le conteneur (pas de new / pas de static)
-        $compteCollection = app('compte.resource.collection', ['collection' => $comptes]);
+            $comptes = $this->compteService->listComptes($filters, $sort, $order, $limit, null);
+            // Liaison via le conteneur (pas de new / pas de static)
+            $compteCollection = app('compte.resource.collection', ['collection' => $comptes]);
 
-        return $this->successResponse($compteCollection, 'Liste des comptes');
+            return $this->successResponse($compteCollection, 'Liste des comptes');
+        } catch (\Throwable $e) {
+            throw $e; // Let the middleware handle it
+        }
     }
 
     /**
@@ -190,12 +194,16 @@ class CompteController extends Controller
      */
     public function store(CompteRequest $request)
     {
-        $data = $request->validated();
-        $compte = $this->compteService->createCompte($data);
+        try {
+            $data = $request->validated();
+            $compte = $this->compteService->createCompte($data);
 
-        $compteResource = app(CompteResource::class, ['compte' => $compte]);
+            $compteResource = app(CompteResource::class, ['compte' => $compte]);
 
-        return $this->successResponse($compteResource, 'Compte créé avec succès', 201);
+            return $this->successResponse($compteResource, 'Compte créé avec succès', 201);
+        } catch (\Throwable $e) {
+            throw $e; // Let the middleware handle it
+        }
     }
 
     /**
@@ -253,26 +261,30 @@ class CompteController extends Controller
      */
     public function show(Request $request, string $compteId)
     {
-        // Essayer d'abord de récupérer le compte non archivé
-        $compte = $this->compteService->getCompte($compteId);
+        try {
+            // Essayer d'abord de récupérer le compte non archivé
+            $compte = $this->compteService->getCompte($compteId);
 
-        // Si non trouvé, essayer avec les archivés
-        if (!$compte) {
-            $compte = $this->compteService->getCompteWithArchived($compteId);
+            // Si non trouvé, essayer avec les archivés
+            if (!$compte) {
+                $compte = $this->compteService->getCompteWithArchived($compteId);
+            }
+
+            // Si toujours pas trouvé, retourner une erreur 404
+            if (!$compte) {
+                throw new CustomApiException(
+                    ErrorCode::COMPTE_NOT_FOUND,
+                    HttpStatusCode::NOT_FOUND,
+                    null,
+                    ['compteId' => $compteId]
+                );
+            }
+
+            $compteResource = app(CompteResource::class, ['compte' => $compte]);
+            return $this->successResponse($compteResource, 'Détails du compte');
+        } catch (\Throwable $e) {
+            throw $e; // Let the middleware handle it
         }
-
-        // Si toujours pas trouvé, retourner une erreur 404
-        if (!$compte) {
-            throw new CustomApiException(
-                ErrorCode::COMPTE_NOT_FOUND,
-                HttpStatusCode::NOT_FOUND,
-                null,
-                ['compteId' => $id]
-            );
-        }
-
-        $compteResource = app(CompteResource::class, ['compte' => $compte]);
-        return $this->successResponse($compteResource, 'Détails du compte');
     }
 
     /**
@@ -352,7 +364,7 @@ class CompteController extends Controller
                 ErrorCode::COMPTE_NOT_FOUND,
                 HttpStatusCode::NOT_FOUND,
                 null,
-                ['compteId' => $compteId]
+                ['compteId' => $id]
             );
         }
 
@@ -408,8 +420,12 @@ class CompteController extends Controller
      */
     public function destroy(Request $request, string $id)
     {
-        $this->compteService->archiveCompte($id);
+        try {
+            $this->compteService->archiveCompte($id);
 
-        return $this->successResponse(null, 'Compte archivé avec succès');
+            return $this->successResponse(null, 'Compte archivé avec succès');
+        } catch (\Throwable $e) {
+            throw $e; // Let the middleware handle it
+        }
     }
 }
