@@ -95,17 +95,51 @@ class CompteService
      * Récupérer un compte par ID
      *
      * @param string $id
-     * @return Compte
-     * @throws CompteNotFoundException
+     * @return Compte|null
      */
-    public function getCompte(string $id): Compte
+    public function getCompte(string $id): ?Compte
     {
-        $compte = $this->repository->findById($id);
+        return $this->repository->findById($id);
+    }
 
-        if (!$compte) {
-            throw new \App\Exceptions\CompteNotFoundException($id);
+    /**
+     * Récupérer un compte par ID en incluant les archivés
+     *
+     * @param string $id
+     * @return Compte|null
+     */
+    public function getCompteWithArchived(string $id): ?Compte
+    {
+        return $this->repository->findByIdWithArchived($id);
+    }
+
+    /**
+     * Mettre à jour un compte
+     *
+     * @param string $id
+     * @param array $data
+     * @return Compte
+     */
+    public function updateCompte(string $id, array $data): Compte
+    {
+        $compte = $this->getCompte($id);
+
+        // Vérifier si le nouveau statut est autorisé pour ce type de compte
+        if (isset($data['statut']) && !$compte->canChangeStatus($data['statut'])) {
+            throw new \InvalidArgumentException('Statut non autorisé pour ce type de compte');
         }
 
-        return $compte;
+        return $this->repository->update($id, $data);
+    }
+
+    /**
+     * Archiver un compte
+     *
+     * @param string $id
+     * @return Compte
+     */
+    public function archiveCompte(string $id): Compte
+    {
+        return $this->repository->archive($id);
     }
 }

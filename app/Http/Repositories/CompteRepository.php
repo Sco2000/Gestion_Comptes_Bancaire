@@ -64,4 +64,46 @@ class CompteRepository
     {
         return $this->model->find($id);
     }
+
+    /**
+     * Trouver un compte par ID en incluant les archivés
+     *
+     * @param string $id
+     * @return Compte|null
+     */
+    public function findByIdWithArchived(string $id): ?Compte
+    {
+        return $this->model->withoutGlobalScope(\App\Models\Scopes\NonArchiveScope::class)->find($id);
+    }
+
+    /**
+     * Mettre à jour un compte
+     *
+     * @param string $id
+     * @param array $data
+     * @return Compte
+     */
+    public function update(string $id, array $data): Compte
+    {
+        $compte = $this->findById($id);
+        if ($compte) {
+            $compte->update($data);
+        }
+        return $compte;
+    }
+
+    /**
+     * Archiver un compte
+     *
+     * @param string $id
+     * @return Compte
+     */
+    public function archive(string $id): Compte
+    {
+        $compte = $this->findById($id);
+        if ($compte) {
+            $compte->update(['statut' => 'archive']);
+        }
+        return $compte;
+    }
 }

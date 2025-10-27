@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 use App\Http\Services\CompteService;
 use App\Http\Resources\CompteResource;
 use App\Http\Requests\CompteRequest;
+use App\Enums\ErrorCode;
+use App\Enums\HttpStatusCode;
+use App\Exceptions\CustomApiException;
 
 
 
@@ -250,7 +253,23 @@ class CompteController extends Controller
      */
     public function show(Request $request, string $compteId)
     {
+        // Essayer d'abord de récupérer le compte non archivé
         $compte = $this->compteService->getCompte($compteId);
+
+        // Si non trouvé, essayer avec les archivés
+        if (!$compte) {
+            $compte = $this->compteService->getCompteWithArchived($compteId);
+        }
+
+        // Si toujours pas trouvé, retourner une erreur 404
+        if (!$compte) {
+            throw new CustomApiException(
+                ErrorCode::COMPTE_NOT_FOUND,
+                HttpStatusCode::NOT_FOUND,
+                null,
+                ['compteId' => $id]
+            );
+        }
 
         $compteResource = app(CompteResource::class, ['compte' => $compte]);
         return $this->successResponse($compteResource, 'Détails du compte');
@@ -319,12 +338,34 @@ class CompteController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        // Essayer d'abord de récupérer le compte non archivé
         $compte = $this->compteService->getCompte($id);
+
+        // Si non trouvé, essayer avec les archivés
+        if (!$compte) {
+            $compte = $this->compteService->getCompteWithArchived($id);
+        }
+
+        // Si toujours pas trouvé, retourner une erreur 404
+        if (!$compte) {
+            throw new CustomApiException(
+                ErrorCode::COMPTE_NOT_FOUND,
+                HttpStatusCode::NOT_FOUND,
+                null,
+                ['compteId' => $compteId]
+            );
+        }
+
         $data = $request->only(['statut']);
 
         // Vérifier si le nouveau statut est autorisé pour ce type de compte
         if (isset($data['statut']) && !$compte->canChangeStatus($data['statut'])) {
-            return $this->errorResponse('Statut non autorisé pour ce type de compte', 400);
+            throw new CustomApiException(
+                ErrorCode::COMPTE_STATUS_INVALID,
+                HttpStatusCode::BAD_REQUEST,
+                null,
+                ['compteId' => $id, 'requestedStatus' => $data['statut']]
+            );
         }
 
         $compte->update($data);
@@ -367,10 +408,7 @@ class CompteController extends Controller
      */
     public function destroy(Request $request, string $id)
     {
-        $compte = $this->compteService->getCompte($id);
-
-        // Archiver le compte au lieu de le supprimer
-        $compte->update(['statut' => 'archive']);
+        $this->compteService->archiveCompte($id);
 
         return $this->successResponse(null, 'Compte archivé avec succès');
     }
