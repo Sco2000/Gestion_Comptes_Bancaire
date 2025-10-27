@@ -10,12 +10,6 @@ use App\Http\Resources\CompteResource;
 use App\Http\Requests\CompteRequest;
 
 
-/**
- * @OA\Tag(
- *     name="Comptes",
- *     description="Gestion des comptes bancaires"
- * )
- */
 
 class CompteController extends Controller
 {
@@ -31,7 +25,6 @@ class CompteController extends Controller
      *     description="Récupère la liste des comptes bancaires avec possibilité de filtrage, tri et pagination",
      *     operationId="getComptes",
      *     tags={"Comptes"},
-     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="type",
      *         in="query",
@@ -124,14 +117,7 @@ class CompteController extends Controller
         $order = $request->get('order', 'desc');
         $limit = min($request->get('limit', 10), 100);
 
-        $user = $request->user();
-
-        // Vérifier les autorisations
-        if ($user && !$user->isAdmin() && !$user->isClient()) {
-            return $this->errorResponse('Accès non autorisé', 403);
-        }
-
-        $comptes = $this->compteService->listComptes($filters, $sort, $order, $limit, $user);
+        $comptes = $this->compteService->listComptes($filters, $sort, $order, $limit, null);
         // Liaison via le conteneur (pas de new / pas de static)
         $compteCollection = app('compte.resource.collection', ['collection' => $comptes]);
 
@@ -145,7 +131,6 @@ class CompteController extends Controller
      *     description="Crée un nouveau compte bancaire avec un client associé",
      *     operationId="createCompte",
      *     tags={"Comptes"},
-     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -202,13 +187,6 @@ class CompteController extends Controller
      */
     public function store(CompteRequest $request)
     {
-        $user = $request->user();
-
-        // Seuls les admins peuvent créer des comptes
-        if (!$user || !$user->isAdmin()) {
-            return $this->errorResponse('Accès non autorisé. Seuls les administrateurs peuvent créer des comptes.', 403);
-        }
-
         $data = $request->validated();
         $compte = $this->compteService->createCompte($data);
 
@@ -224,7 +202,6 @@ class CompteController extends Controller
      *     description="Récupère les informations détaillées d'un compte bancaire spécifique",
      *     operationId="getCompte",
      *     tags={"Comptes"},
-     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="compteId",
      *         in="path",
@@ -273,30 +250,75 @@ class CompteController extends Controller
      */
     public function show(Request $request, string $compteId)
     {
-        $user = $request->user();
         $compte = $this->compteService->getCompte($compteId);
-
-        // Vérifier les autorisations
-        if ($user->isClient() && $compte->client->user_id !== $user->id) {
-            return $this->errorResponse('Accès non autorisé à ce compte', 403);
-        }
 
         $compteResource = app(CompteResource::class, ['compte' => $compte]);
         return $this->successResponse($compteResource, 'Détails du compte');
     }
 
     /**
-     * Update the specified resource in storage.
+     * @OA\Put(
+     *     path="/api/v1/comptes/{id}",
+     *     summary="Modifier un compte bancaire",
+     *     description="Modifie le statut d'un compte bancaire existant",
+     *     operationId="updateCompte",
+     *     tags={"Comptes"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID du compte bancaire",
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"statut"},
+     *             @OA\Property(property="statut", type="string", enum={"actif", "bloque"}, example="bloque")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Compte modifié avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="id", type="string", example="uuid"),
+     *                 @OA\Property(property="numeroCompte", type="string", example="CPT-123456"),
+     *                 @OA\Property(property="titulaire", type="string", example="John Doe"),
+     *                 @OA\Property(property="type", type="string", example="cheque"),
+     *                 @OA\Property(property="solde", type="number", example=50000),
+     *                 @OA\Property(property="statut", type="string", example="bloque")
+     *             ),
+     *             @OA\Property(property="message", type="string", example="Compte modifié avec succès")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Statut non autorisé pour ce type de compte",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Statut non autorisé pour ce type de compte")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Compte non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Compte non trouvé")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Erreur de validation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Erreur de validation"),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
      */
     public function update(Request $request, string $id)
     {
-        $user = $request->user();
-
-        // Seuls les admins peuvent modifier les comptes
-        if (!$user || !$user->isAdmin()) {
-            return $this->errorResponse('Accès non autorisé. Seuls les administrateurs peuvent modifier des comptes.', 403);
-        }
-
         $compte = $this->compteService->getCompte($id);
         $data = $request->only(['statut']);
 
@@ -312,17 +334,39 @@ class CompteController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * @OA\Delete(
+     *     path="/api/v1/comptes/{id}",
+     *     summary="Archiver un compte bancaire",
+     *     description="Archive un compte bancaire existant (soft delete)",
+     *     operationId="deleteCompte",
+     *     tags={"Comptes"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID du compte bancaire",
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Compte archivé avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="null"),
+     *             @OA\Property(property="message", type="string", example="Compte archivé avec succès")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Compte non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Compte non trouvé")
+     *         )
+     *     )
+     * )
      */
     public function destroy(Request $request, string $id)
     {
-        $user = $request->user();
-
-        // Seuls les admins peuvent archiver des comptes
-        if (!$user || !$user->isAdmin()) {
-            return $this->errorResponse('Accès non autorisé. Seuls les administrateurs peuvent archiver des comptes.', 403);
-        }
-
         $compte = $this->compteService->getCompte($id);
 
         // Archiver le compte au lieu de le supprimer

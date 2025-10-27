@@ -17,17 +17,10 @@ use App\Http\Controllers\Api\V1\AuthController;
 */
 
 Route::prefix('v1')->group(function(){
-    // Routes d'authentification (non protégées)
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');
-    Route::get('/user', [AuthController::class, 'user'])->middleware('auth:api');
-
-    // Routes des comptes (protégées par authentification)
-    Route::middleware('auth:api')->group(function() {
-        Route::get('/comptes', [CompteController::class, 'index']);
-        Route::get('/comptes/{compteId}', [CompteController::class, 'show']);
-        Route::post('/comptes', [CompteController::class, 'store']);
-        Route::put('/comptes/{id}', [CompteController::class, 'update']);
-        Route::delete('/comptes/{id}', [CompteController::class, 'destroy']);
-    });
+    // Routes des comptes (sans authentification)
+    Route::get('/comptes', [CompteController::class, 'index']);
+    Route::get('/comptes/{compteId}', [CompteController::class, 'show']);
+    Route::post('/comptes', [CompteController::class, 'store']);
+    Route::put('/comptes/{id}', [CompteController::class, 'update']);
+    Route::delete('/comptes/{id}', [CompteController::class, 'destroy']);
 });
