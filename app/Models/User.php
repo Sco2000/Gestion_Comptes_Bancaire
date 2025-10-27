@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Passport\HasApiTokens;
 
 
@@ -30,9 +31,11 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
+        'nom',
         'email',
         'password',
+        'telephone',
+        'actif',
     ];
 
     /**
@@ -53,6 +56,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'actif' => 'boolean',
     ];
 
     protected static function boot()
@@ -64,5 +68,25 @@ class User extends Authenticatable
                 $model->{$model->getKeyName()} = (string) Str::uuid();
             }
         });
+    }
+
+    public function client()
+    {
+        return $this->hasOne(Client::class);
+    }
+
+    public function admin()
+    {
+        return $this->hasOne(Admin::class);
+    }
+
+    public function isAdmin()
+    {
+        return $this->admin()->exists();
+    }
+
+    public function isClient()
+    {
+        return $this->client()->exists();
     }
 }
