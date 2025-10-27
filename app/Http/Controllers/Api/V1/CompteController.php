@@ -11,16 +11,9 @@ use App\Http\Requests\CompteRequest;
 
 
 /**
-<<<<<<< HEAD
- * @OA\Info(
- *     title="Gestion Comptes API",
- *     version="1.0.0",
- *     description="API pour la gestion des comptes bancaires"
-=======
  * @OA\Tag(
  *     name="Comptes",
  *     description="Gestion des comptes bancaires"
->>>>>>> dev
  * )
  */
 
@@ -125,20 +118,10 @@ class CompteController extends Controller
      */
     public function index(Request $request)
     {
-<<<<<<< HEAD
-
-=======
->>>>>>> dev
         $filters = $request->only(['type', 'statut', 'search']);
         $sort = $request->get('sort', 'created_at');
         $order = $request->get('order', 'desc');
         $limit = min($request->get('limit', 10), 100);
-<<<<<<< HEAD
-        $query = Compte::query();
-
-        $user = $request->user();
-
-=======
 
         $user = $request->user();
 
@@ -147,7 +130,6 @@ class CompteController extends Controller
             return $this->errorResponse('Accès non autorisé', 403);
         }
 
->>>>>>> dev
         $comptes = $this->compteService->listComptes($filters, $sort, $order, $limit, $user);
         // Liaison via le conteneur (pas de new / pas de static)
         $compteCollection = app('compte.resource.collection', ['collection' => $comptes]);
@@ -156,12 +138,6 @@ class CompteController extends Controller
     }
 
     /**
-<<<<<<< HEAD
-     * Store a newly created resource in storage.
-     */
-    public function store(CompteRequest $request)
-    {
-=======
      * @OA\Post(
      *     path="/comptes",
      *     summary="Créer un nouveau compte bancaire",
@@ -232,7 +208,6 @@ class CompteController extends Controller
             return $this->errorResponse('Accès non autorisé. Seuls les administrateurs peuvent créer des comptes.', 403);
         }
 
->>>>>>> dev
         $data = $request->validated();
         $compte = $this->compteService->createCompte($data);
 
@@ -242,13 +217,6 @@ class CompteController extends Controller
     }
 
     /**
-<<<<<<< HEAD
-     * Display the specified resource.
-     */
-    public function show(string $compteId)
-    {
-        $compte = $this->compteService->getCompte($compteId);
-=======
      * @OA\Get(
      *     path="/comptes/{compteId}",
      *     summary="Obtenir les détails d'un compte",
@@ -312,7 +280,6 @@ class CompteController extends Controller
             return $this->errorResponse('Accès non autorisé à ce compte', 403);
         }
 
->>>>>>> dev
         $compteResource = app(CompteResource::class, ['compte' => $compte]);
         return $this->successResponse($compteResource, 'Détails du compte');
     }
@@ -322,9 +289,6 @@ class CompteController extends Controller
      */
     public function update(Request $request, string $id)
     {
-<<<<<<< HEAD
-        //
-=======
         $user = $request->user();
 
         // Seuls les admins peuvent modifier les comptes
@@ -344,17 +308,11 @@ class CompteController extends Controller
 
         $compteResource = app(CompteResource::class, ['compte' => $compte]);
         return $this->successResponse($compteResource, 'Compte modifié avec succès');
->>>>>>> dev
     }
 
     /**
      * Remove the specified resource from storage.
      */
-<<<<<<< HEAD
-    public function destroy(string $id)
-    {
-        //
-=======
     public function destroy(Request $request, string $id)
     {
         $user = $request->user();
@@ -370,6 +328,5 @@ class CompteController extends Controller
         $compte->update(['statut' => 'archive']);
 
         return $this->successResponse(null, 'Compte archivé avec succès');
->>>>>>> dev
     }
 }

@@ -11,11 +11,7 @@ class Client extends Model
 
     public $incrementing = false; // UUID
     protected $keyType = 'string';
-<<<<<<< HEAD
-    protected $fillable = ['id','prenom','nom','email','telephone','adresse','nci'];
-    
-=======
-    protected $fillable = ['id', 'user_id', 'adresse', 'date_naissance'];
+    protected $fillable = ['id', 'user_id', 'prenom', 'nom', 'email', 'telephone', 'adresse', 'nci', 'date_naissance'];
 
     protected static function booted()
     {
@@ -31,17 +27,13 @@ class Client extends Model
         return $this->belongsTo(User::class);
     }
 
->>>>>>> dev
     public function comptes()
     {
         return $this->hasMany(Compte::class);
     }
-<<<<<<< HEAD
-=======
 
     public function isClient()
     {
         return true;
     }
->>>>>>> dev
 }
