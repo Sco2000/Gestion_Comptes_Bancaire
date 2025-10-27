@@ -15,7 +15,8 @@ use Illuminate\Validation\ValidationException;
  *     version="1.0.0",
  *     description="API pour la gestion des comptes bancaires avec authentification"
  * )
- * @OA\Server(url="http://localhost:8000/api/v1")
+ * @OA\Server(url="http://localhost:8000", description="Serveur local de développement")
+ * @OA\Server(url="https://gestion-comptes-bancaire-marra-ousmane.onrender.com", description="Serveur de production")
  * @OA\SecurityScheme(
  *     securityScheme="bearerAuth",
  *     type="http",
@@ -27,7 +28,7 @@ class AuthController extends Controller
 {
     /**
      * @OA\Post(
-     *     path="/login",
+     *     path="/api/v1/login",
      *     summary="Authentifier un utilisateur",
      *     description="Authentifie un utilisateur et retourne un token d'accès JWT",
      *     operationId="login",
@@ -115,7 +116,7 @@ class AuthController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/logout",
+     *     path="/api/v1/logout",
      *     summary="Déconnecter l'utilisateur",
      *     description="Révoque le token d'accès actuel de l'utilisateur",
      *     operationId="logout",
@@ -148,7 +149,7 @@ class AuthController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/user",
+     *     path="/api/v1/user",
      *     summary="Obtenir les informations de l'utilisateur connecté",
      *     description="Retourne les informations de l'utilisateur actuellement authentifié",
      *     operationId="getUser",

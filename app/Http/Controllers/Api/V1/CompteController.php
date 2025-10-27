@@ -31,6 +31,7 @@ class CompteController extends Controller
      *     description="Récupère la liste des comptes bancaires avec possibilité de filtrage, tri et pagination",
      *     operationId="getComptes",
      *     tags={"Comptes"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="type",
      *         in="query",
@@ -139,7 +140,7 @@ class CompteController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/comptes",
+     *     path="/api/v1/comptes",
      *     summary="Créer un nouveau compte bancaire",
      *     description="Crée un nouveau compte bancaire avec un client associé",
      *     operationId="createCompte",
@@ -218,7 +219,7 @@ class CompteController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/comptes/{compteId}",
+     *     path="/api/v1/comptes/{compteId}",
      *     summary="Obtenir les détails d'un compte",
      *     description="Récupère les informations détaillées d'un compte bancaire spécifique",
      *     operationId="getCompte",

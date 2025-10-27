@@ -7,11 +7,16 @@
     },
     "servers": [
         {
-            "url": "http://localhost:8000/api/v1"
+            "url": "http://localhost:8000",
+            "description": "Serveur local de développement"
+        },
+        {
+            "url": "https://gestion-comptes-bancaire-marra-ousmane.onrender.com",
+            "description": "Serveur de production"
         }
     ],
     "paths": {
-        "/login": {
+        "/api/v1/login": {
             "post": {
                 "tags": [
                     "Authentification"
@@ -130,7 +135,7 @@
                 }
             }
         },
-        "/logout": {
+        "/api/v1/logout": {
             "post": {
                 "tags": [
                     "Authentification"
@@ -186,7 +191,7 @@
                 ]
             }
         },
-        "/user": {
+        "/api/v1/user": {
             "get": {
                 "tags": [
                     "Authentification"
@@ -499,10 +504,13 @@
                     "401": {
                         "description": "Non autorisé"
                     }
-                }
-            }
-        },
-        "/comptes": {
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
             "post": {
                 "tags": [
                     "Comptes"
@@ -677,7 +685,7 @@
                 ]
             }
         },
-        "/comptes/{compteId}": {
+        "/api/v1/comptes/{compteId}": {
             "get": {
                 "tags": [
                     "Comptes"
