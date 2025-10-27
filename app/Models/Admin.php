@@ -5,13 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Client extends Model
+class Admin extends Model
 {
     use HasFactory;
 
-    public $incrementing = false; // UUID
+    public $incrementing = false;
     protected $keyType = 'string';
-    protected $fillable = ['id', 'user_id', 'adresse', 'date_naissance'];
+    protected $fillable = ['id', 'user_id', 'matricule'];
 
     protected static function booted()
     {
@@ -27,12 +27,7 @@ class Client extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function comptes()
-    {
-        return $this->hasMany(Compte::class);
-    }
-
-    public function isClient()
+    public function isAdmin()
     {
         return true;
     }

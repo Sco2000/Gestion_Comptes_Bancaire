@@ -35,4 +35,14 @@ class Compte extends Model
     {
         return $this->belongsTo(Client::class);
     }
+
+    public function canChangeStatus($newStatus)
+    {
+        if ($this->type === 'cheque') {
+            return in_array($newStatus, ['actif', 'archive']);
+        }
+
+        // Pour les comptes épargne, tous les statuts sont autorisés
+        return in_array($newStatus, ['actif', 'bloque', 'archive']);
+    }
 }

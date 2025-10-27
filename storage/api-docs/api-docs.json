@@ -2,10 +2,277 @@
     "openapi": "3.0.0",
     "info": {
         "title": "Gestion Comptes API",
-        "description": "API pour la gestion des comptes bancaires",
+        "description": "API pour la gestion des comptes bancaires avec authentification",
         "version": "1.0.0"
     },
+    "servers": [
+        {
+            "url": "http://localhost:8000/api/v1"
+        }
+    ],
     "paths": {
+        "/login": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Authentifier un utilisateur",
+                "description": "Authentifie un utilisateur et retourne un token d'accès JWT",
+                "operationId": "login",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "admin@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Connexion réussie",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "user": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "example": "uuid"
+                                                        },
+                                                        "nom": {
+                                                            "type": "string",
+                                                            "example": "Admin User"
+                                                        },
+                                                        "email": {
+                                                            "type": "string",
+                                                            "example": "admin@example.com"
+                                                        },
+                                                        "telephone": {
+                                                            "type": "string",
+                                                            "example": "+221771234567"
+                                                        },
+                                                        "role": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "admin",
+                                                                "client",
+                                                                "user"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "token": {
+                                                    "type": "string",
+                                                    "example": "jwt_token_here"
+                                                },
+                                                "token_type": {
+                                                    "type": "string",
+                                                    "example": "Bearer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Connexion réussie"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Informations d'identification incorrectes",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Les informations d'identification sont incorrectes."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/logout": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Déconnecter l'utilisateur",
+                "description": "Révoque le token d'accès actuel de l'utilisateur",
+                "operationId": "logout",
+                "responses": {
+                    "200": {
+                        "description": "Déconnexion réussie",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "null"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Déconnexion réussie"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/user": {
+            "get": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Obtenir les informations de l'utilisateur connecté",
+                "description": "Retourne les informations de l'utilisateur actuellement authentifié",
+                "operationId": "getUser",
+                "responses": {
+                    "200": {
+                        "description": "Informations utilisateur récupérées",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "user": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "example": "uuid"
+                                                        },
+                                                        "nom": {
+                                                            "type": "string",
+                                                            "example": "Admin User"
+                                                        },
+                                                        "email": {
+                                                            "type": "string",
+                                                            "example": "admin@example.com"
+                                                        },
+                                                        "telephone": {
+                                                            "type": "string",
+                                                            "example": "+221771234567"
+                                                        },
+                                                        "role": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "admin",
+                                                                "client",
+                                                                "user"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Informations utilisateur"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/v1/comptes": {
             "get": {
                 "tags": [
@@ -234,12 +501,326 @@
                     }
                 }
             }
+        },
+        "/comptes": {
+            "post": {
+                "tags": [
+                    "Comptes"
+                ],
+                "summary": "Créer un nouveau compte bancaire",
+                "description": "Crée un nouveau compte bancaire avec un client associé",
+                "operationId": "createCompte",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "type",
+                                    "solde",
+                                    "client"
+                                ],
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "cheque",
+                                            "epargne"
+                                        ],
+                                        "example": "cheque"
+                                    },
+                                    "solde": {
+                                        "type": "number",
+                                        "minimum": 10000,
+                                        "example": 50000
+                                    },
+                                    "client": {
+                                        "required": [
+                                            "prenom",
+                                            "nom",
+                                            "email",
+                                            "telephone"
+                                        ],
+                                        "properties": {
+                                            "prenom": {
+                                                "type": "string",
+                                                "example": "John"
+                                            },
+                                            "nom": {
+                                                "type": "string",
+                                                "example": "Doe"
+                                            },
+                                            "email": {
+                                                "type": "string",
+                                                "format": "email",
+                                                "example": "john.doe@example.com"
+                                            },
+                                            "telephone": {
+                                                "type": "string",
+                                                "example": "+221771234567"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Compte créé avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "example": "uuid"
+                                                },
+                                                "numeroCompte": {
+                                                    "type": "string",
+                                                    "example": "CPT-123456"
+                                                },
+                                                "titulaire": {
+                                                    "type": "string",
+                                                    "example": "John Doe"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "example": "cheque"
+                                                },
+                                                "solde": {
+                                                    "type": "number",
+                                                    "example": 50000
+                                                },
+                                                "statut": {
+                                                    "type": "string",
+                                                    "example": "actif"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Compte créé avec succès"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Accès refusé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Accès refusé"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Erreur de validation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Erreur de validation"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/comptes/{compteId}": {
+            "get": {
+                "tags": [
+                    "Comptes"
+                ],
+                "summary": "Obtenir les détails d'un compte",
+                "description": "Récupère les informations détaillées d'un compte bancaire spécifique",
+                "operationId": "getCompte",
+                "parameters": [
+                    {
+                        "name": "compteId",
+                        "in": "path",
+                        "description": "ID du compte bancaire",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détails du compte récupérés",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "example": "uuid"
+                                                },
+                                                "numeroCompte": {
+                                                    "type": "string",
+                                                    "example": "CPT-123456"
+                                                },
+                                                "titulaire": {
+                                                    "type": "string",
+                                                    "example": "John Doe"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "example": "cheque"
+                                                },
+                                                "solde": {
+                                                    "type": "number",
+                                                    "example": 50000
+                                                },
+                                                "statut": {
+                                                    "type": "string",
+                                                    "example": "actif"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Détails du compte"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Accès refusé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Accès refusé"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Compte non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Compte non trouvé"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
         }
     },
     "tags": [
         {
             "name": "Comptes",
-            "description": "Comptes"
+            "description": "Gestion des comptes bancaires"
+        },
+        {
+            "name": "Authentification",
+            "description": "Authentification"
         }
     ]
 }
