@@ -73,44 +73,49 @@ class MoveBlockedCompteToNeon implements ShouldQueue
 
     private function copyClientToNeon($client)
     {
-        // Copy user if not exists
-        $neonUser = NeonUser::find($client->user_id);
-        if (!$neonUser) {
-            $user = $client->user;
-            NeonUser::create([
-                'id' => $user->id,
-                'nom' => $user->nom,
-                'email' => $user->email,
-                'password' => $user->password,
-                'telephone' => $user->telephone,
-                'actif' => $user->actif,
-                'email_verified_at' => $user->email_verified_at,
-            ]);
+        try {
+            // Copy user if not exists
+            $neonUser = NeonUser::find($client->user_id);
+            if (!$neonUser) {
+                $user = $client->user;
+                NeonUser::create([
+                    'id' => $user->id,
+                    'nom' => $user->nom,
+                    'email' => $user->email,
+                    'password' => $user->password,
+                    'telephone' => $user->telephone,
+                    'actif' => $user->actif,
+                    'email_verified_at' => $user->email_verified_at,
+                ]);
 
-            // Copy admin if exists
-            if ($user->admin) {
-                \App\Models\NeonAdmin::create([
-                    'id' => $user->admin->id,
-                    'user_id' => $user->admin->user_id,
-                    'matricule' => $user->admin->matricule,
+                // Copy admin if exists
+                if ($user->admin) {
+                    \App\Models\NeonAdmin::create([
+                        'id' => $user->admin->id,
+                        'user_id' => $user->admin->user_id,
+                        'matricule' => $user->admin->matricule,
+                    ]);
+                }
+            }
+
+            // Copy client if not exists
+            $neonClient = NeonClient::find($client->id);
+            if (!$neonClient) {
+                NeonClient::create([
+                    'id' => $client->id,
+                    'user_id' => $client->user_id,
+                    'prenom' => $client->prenom,
+                    'nom' => $client->nom,
+                    'email' => $client->email,
+                    'telephone' => $client->telephone,
+                    'adresse' => $client->adresse,
+                    'nci' => $client->nci,
+                    'date_naissance' => $client->date_naissance,
                 ]);
             }
-        }
-
-        // Copy client if not exists
-        $neonClient = NeonClient::find($client->id);
-        if (!$neonClient) {
-            NeonClient::create([
-                'id' => $client->id,
-                'user_id' => $client->user_id,
-                'prenom' => $client->prenom,
-                'nom' => $client->nom,
-                'email' => $client->email,
-                'telephone' => $client->telephone,
-                'adresse' => $client->adresse,
-                'nci' => $client->nci,
-                'date_naissance' => $client->date_naissance,
-            ]);
+        } catch (\Exception $e) {
+            // Log the error but don't fail the main operation
+            \Log::error('Failed to copy client to Neon: ' . $e->getMessage());
         }
     }
 }

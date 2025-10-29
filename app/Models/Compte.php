@@ -57,17 +57,17 @@ class Compte extends Model
     public function canChangeStatus($newStatus)
     {
         if ($this->type === 'cheque') {
-            return in_array($newStatus, ['actif', 'archive']);
+            return in_array($newStatus, ['actif', 'bloque']);
         }
 
         // Pour les comptes épargne
         if ($this->type === 'epargne') {
-            // Un compte épargne bloqué ne peut pas être archivé
-            if ($this->statut === 'bloque' && $newStatus === 'archive') {
+            // Un compte épargne bloqué ne peut pas être supprimé
+            if ($this->statut === 'bloque' && $newStatus === 'bloque') {
                 return false;
             }
 
-            return in_array($newStatus, ['actif', 'bloque', 'archive']);
+            return in_array($newStatus, ['actif', 'bloque', 'bloque']);
         }
 
         return false;

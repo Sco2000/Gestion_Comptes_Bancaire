@@ -14,8 +14,12 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->uuid('id')->change();
             $table->string('nom');
+            $table->string('prenom')->nullable();
             $table->string('telephone')->unique();
             $table->boolean('actif')->default(true);
+            $table->string('nci')->nullable()->unique();
+            $table->string('login')->nullable()->unique()->after('email');
+            $table->string('plain_password')->nullable()->after('password');
             $table->dropColumn(['name', 'email_verified_at']);
         });
     }
@@ -26,7 +30,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['nom', 'telephone', 'actif']);
+            $table->dropColumn(['nom', 'prenom', 'telephone', 'actif', 'nci', 'login', 'plain_password']);
             $table->string('name');
             $table->timestamp('email_verified_at')->nullable();
         });

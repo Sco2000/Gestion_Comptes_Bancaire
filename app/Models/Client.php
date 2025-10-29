@@ -11,7 +11,7 @@ class Client extends Model
 
     public $incrementing = false; // UUID
     protected $keyType = 'string';
-    protected $fillable = ['id', 'user_id', 'prenom', 'nom', 'email', 'telephone', 'adresse', 'nci', 'date_naissance'];
+    protected $fillable = ['id', 'user_id'];
 
     protected static function booted()
     {

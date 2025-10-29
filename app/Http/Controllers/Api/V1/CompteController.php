@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Http\Controllers\Controller;
 use App\Models\Compte;
-use Illuminate\Http\Request;
-use App\Http\Services\CompteService;
-use App\Http\Resources\CompteResource;
-use App\Http\Requests\CompteRequest;
 use App\Enums\ErrorCode;
+use Illuminate\Http\Request;
 use App\Enums\HttpStatusCode;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\CompteRequest;
+use App\Http\Services\CompteService;
 use App\Exceptions\CustomApiException;
+use App\Http\Resources\CompteResource;
 
 
 
@@ -38,9 +39,9 @@ class CompteController extends Controller
      *     @OA\Parameter(
      *         name="statut",
      *         in="query",
-     *         description="Statut du compte (actif, bloque, archive). Pour 'bloque', inclut les comptes de la base Neon.",
+     *         description="Statut du compte (actif, bloque, supprimé). Pour 'bloque', inclut les comptes de la base Neon.",
      *         required=false,
-     *         @OA\Schema(type="string", enum={"actif", "bloque", "archive"})
+     *         @OA\Schema(type="string", enum={"actif", "bloque", "supprimé"})
      *     ),
      *     @OA\Parameter(
      *         name="search",
@@ -83,7 +84,7 @@ class CompteController extends Controller
      *                 @OA\Property(property="solde", type="number", format="float", example=1250000),
      *                 @OA\Property(property="devise", type="string", example="FCFA"),
      *                 @OA\Property(property="dateCreation", type="string", format="date-time", example="2023-03-15T00:00:00Z"),
-     *                 @OA\Property(property="statut", type="string", enum={"actif", "bloque", "archive"}, example="bloque"),
+     *             @OA\Property(property="statut", type="string", enum={"actif", "bloque", "supprimé"}, example="bloque"),
      *                 @OA\Property(property="motifBlocage", type="string", nullable=true, example="Inactivité de 30+ jours"),
      *                 @OA\Property(property="dateDebutBlocage", type="string", format="date", nullable=true, example="2023-06-01"),
      *                 @OA\Property(property="dateFinBlocage", type="string", format="date", nullable=true, example="2023-06-15"),
@@ -258,7 +259,7 @@ class CompteController extends Controller
      *                 @OA\Property(property="titulaire", type="string", example="John Doe"),
      *                 @OA\Property(property="type", type="string", example="cheque"),
      *                 @OA\Property(property="solde", type="number", example=50000),
-     *                 @OA\Property(property="statut", type="string", enum={"actif", "bloque", "archive"}, example="actif")
+     *                 @OA\Property(property="statut", type="string", enum={"actif", "bloque", "supprimé"}, example="actif")
      *             ),
      *             @OA\Property(property="message", type="string", example="Détails du compte")
      *         )
@@ -342,7 +343,7 @@ class CompteController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             required={"statut"},
-     *             @OA\Property(property="statut", type="string", enum={"actif", "bloque", "archive"}, example="bloque"),
+     *                 @OA\Property(property="statut", type="string", enum={"actif", "bloque", "supprimé"}, example="bloque"),
      *             @OA\Property(property="dateDebutBlocage", type="string", format="date", nullable=true, example="2023-06-01", description="Date de début de blocage (obligatoire si statut = bloque)"),
      *             @OA\Property(property="dateFinBlocage", type="string", format="date", nullable=true, example="2023-06-15", description="Date de fin de blocage (obligatoire si statut = bloque)")
      *         )
@@ -358,7 +359,7 @@ class CompteController extends Controller
      *                 @OA\Property(property="titulaire", type="string", example="John Doe"),
      *                 @OA\Property(property="type", type="string", example="cheque"),
      *                 @OA\Property(property="solde", type="number", example=50000),
-     *                 @OA\Property(property="statut", type="string", enum={"actif", "bloque", "archive"}, example="bloque")
+     *                 @OA\Property(property="statut", type="string", enum={"actif", "bloque", "supprimé"}, example="bloque")
      *             ),
      *             @OA\Property(property="message", type="string", example="Compte modifié avec succès")
      *         )
@@ -403,8 +404,8 @@ class CompteController extends Controller
     /**
      * @OA\Delete(
      *     path="/api/v1/comptes/{id}",
-     *     summary="Archiver un compte bancaire",
-     *     description="Archive un compte bancaire existant (soft delete)",
+     *     summary="Supprimer un compte bancaire",
+     *     description="Supprime un compte bancaire existant (soft delete)",
      *     operationId="deleteCompte",
      *     tags={"Comptes"},
      *     @OA\Parameter(
@@ -446,15 +447,15 @@ class CompteController extends Controller
     /**
      * @OA\Patch(
      *     path="/api/v1/comptes/{id}/restore",
-     *     summary="Restaurer un compte archivé depuis Neon",
-     *     description="Restaure un compte archivé depuis la base de données Neon vers la base principale",
-     *     operationId="restoreArchivedCompte",
+     *     summary="Restaurer un compte bloqué depuis Neon",
+     *     description="Restaure un compte bloqué depuis la base de données Neon vers la base principale",
+     *     operationId="restoreBlockedCompte",
      *     tags={"Comptes"},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
      *         required=true,
-     *         description="ID du compte bancaire archivé",
+     *         description="ID du compte bancaire bloqué",
      *         @OA\Schema(type="string", format="uuid")
      *     ),
      *     @OA\Response(

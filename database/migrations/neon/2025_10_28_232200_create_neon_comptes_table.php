@@ -20,7 +20,7 @@ return new class extends Migration
             $table->enum('type', ['epargne', 'cheque']);
             $table->decimal('solde', 15, 2);
             $table->dateTime('date_creation');
-            $table->enum('statut', ['actif', 'bloque', 'archive'])->default('actif');
+            $table->enum('statut', ['actif', 'bloque', 'supprimé'])->default('actif');
             $table->date('date_debut_blocage')->nullable();
             $table->date('date_fin_blocage')->nullable();
             $table->timestamps();

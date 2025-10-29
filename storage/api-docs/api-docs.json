@@ -16,6 +16,176 @@
         }
     ],
     "paths": {
+        "/api/v1/clients/{compteId}": {
+            "patch": {
+                "tags": [
+                    "Clients"
+                ],
+                "summary": "Mettre à jour les informations d'un client via son compte",
+                "description": "Met à jour partiellement les informations d'un client en utilisant l'ID d'un de ses comptes. Les modifications sont appliquées dans la base Render.",
+                "operationId": "updateClientViaCompte",
+                "parameters": [
+                    {
+                        "name": "compteId",
+                        "in": "path",
+                        "description": "ID du compte appartenant au client",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "prenom": {
+                                        "type": "string",
+                                        "example": "John",
+                                        "nullable": true
+                                    },
+                                    "nom": {
+                                        "type": "string",
+                                        "example": "Doe",
+                                        "nullable": true
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "john.doe@example.com",
+                                        "nullable": true
+                                    },
+                                    "telephone": {
+                                        "type": "string",
+                                        "example": "+221771234567",
+                                        "nullable": true
+                                    },
+                                    "adresse": {
+                                        "type": "string",
+                                        "example": "123 Main St",
+                                        "nullable": true
+                                    },
+                                    "nci": {
+                                        "type": "string",
+                                        "example": "1234567890123",
+                                        "nullable": true
+                                    },
+                                    "date_naissance": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "1990-01-01",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Client mis à jour avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "example": "uuid"
+                                                },
+                                                "prenom": {
+                                                    "type": "string",
+                                                    "example": "John",
+                                                    "nullable": true
+                                                },
+                                                "nom": {
+                                                    "type": "string",
+                                                    "example": "Doe"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "example": "john.doe@example.com"
+                                                },
+                                                "telephone": {
+                                                    "type": "string",
+                                                    "example": "+221771234567"
+                                                },
+                                                "adresse": {
+                                                    "type": "string",
+                                                    "example": "123 Main St",
+                                                    "nullable": true
+                                                },
+                                                "nci": {
+                                                    "type": "string",
+                                                    "example": "1234567890123",
+                                                    "nullable": true
+                                                },
+                                                "date_naissance": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "1990-01-01",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Client mis à jour avec succès"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Client non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Client non trouvé"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Erreur de validation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Erreur de validation"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/comptes": {
             "get": {
                 "tags": [
@@ -41,14 +211,14 @@
                     {
                         "name": "statut",
                         "in": "query",
-                        "description": "Statut du compte (actif, bloque, archive). Pour 'bloque', inclut les comptes de la base Neon.",
+                        "description": "Statut du compte (actif, bloque, supprimé). Pour 'bloque', inclut les comptes de la base Neon.",
                         "required": false,
                         "schema": {
                             "type": "string",
                             "enum": [
                                 "actif",
                                 "bloque",
-                                "archive"
+                                "supprimé"
                             ]
                         }
                     },
@@ -152,7 +322,7 @@
                                                         "enum": [
                                                             "actif",
                                                             "bloque",
-                                                            "archive"
+                                                            "supprimé"
                                                         ],
                                                         "example": "bloque"
                                                     },
@@ -517,7 +687,7 @@
                                                     "enum": [
                                                         "actif",
                                                         "bloque",
-                                                        "archive"
+                                                        "supprimé"
                                                     ],
                                                     "example": "actif"
                                                 }
@@ -619,7 +789,7 @@
                                         "enum": [
                                             "actif",
                                             "bloque",
-                                            "archive"
+                                            "supprimé"
                                         ],
                                         "example": "bloque"
                                     },
@@ -681,7 +851,7 @@
                                                     "enum": [
                                                         "actif",
                                                         "bloque",
-                                                        "archive"
+                                                        "supprimé"
                                                     ],
                                                     "example": "bloque"
                                                 }
@@ -755,8 +925,8 @@
                 "tags": [
                     "Comptes"
                 ],
-                "summary": "Archiver un compte bancaire",
-                "description": "Archive un compte bancaire existant (soft delete)",
+                "summary": "Supprimer un compte bancaire",
+                "description": "Supprime un compte bancaire existant (soft delete)",
                 "operationId": "deleteCompte",
                 "parameters": [
                     {
@@ -818,14 +988,14 @@
                 "tags": [
                     "Comptes"
                 ],
-                "summary": "Restaurer un compte archivé depuis Neon",
-                "description": "Restaure un compte archivé depuis la base de données Neon vers la base principale",
-                "operationId": "restoreArchivedCompte",
+                "summary": "Restaurer un compte bloqué depuis Neon",
+                "description": "Restaure un compte bloqué depuis la base de données Neon vers la base principale",
+                "operationId": "restoreBlockedCompte",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
-                        "description": "ID du compte bancaire archivé",
+                        "description": "ID du compte bancaire bloqué",
                         "required": true,
                         "schema": {
                             "type": "string",
@@ -897,6 +1067,10 @@
         {
             "name": "Comptes",
             "description": "Gestion des comptes bancaires"
+        },
+        {
+            "name": "Clients",
+            "description": "Clients"
         }
     ]
 }

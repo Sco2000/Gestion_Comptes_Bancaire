@@ -27,14 +27,18 @@ class CompteRepository
 
         if (!empty($filters['statut'])) {
             $query->withoutGlobalScopes();
-            $query->where('statut', $filters['statut']);
+            if ($filters['statut'] === 'archive') {
+                $query->where('statut', 'supprimé');
+            } else {
+                $query->where('statut', $filters['statut']);
+            }
         }
 
         if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('numero_compte', 'like', "%$search%")
-                  ->orWhereHas('client', function ($q2) use ($search) {
+                  ->orWhereHas('client.user', function ($q2) use ($search) {
                       $q2->where('prenom', 'like', "%$search%")
                          ->orWhere('nom', 'like', "%$search%");
                   });
@@ -109,7 +113,7 @@ class CompteRepository
     {
         $compte = $this->findById($id);
         if ($compte) {
-            $compte->update(['statut' => 'archive']);
+            $compte->update(['statut' => 'supprimé']);
         }
         return $compte;
     }

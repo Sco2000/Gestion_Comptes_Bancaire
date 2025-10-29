@@ -21,12 +21,6 @@ class ClientFactory extends Factory
         return [
             'id' => (string) Str::uuid(),
             'user_id' => \App\Models\User::factory(),
-            'prenom' => $this->faker->firstName(),
-            'nom' => $this->faker->lastName(),
-            'email' => $this->faker->unique()->safeEmail(),
-            'telephone' => $this->faker->unique()->phoneNumber(),
-            'adresse' => $this->faker->optional()->address(),
-            'date_naissance' => $this->faker->optional()->date(),
         ];
     }
 }

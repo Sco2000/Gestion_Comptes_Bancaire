@@ -41,29 +41,27 @@ class CompteService
     public function createCompte(array $data): Compte
     {
         return DB::transaction(function () use ($data) {
-            // Vérifier si le client existe déjà via son CNI
-            $client = null;
+            // Vérifier si le client existe déjà via son N.C.I
+            $user = null;
             if (isset($data['client']['nci'])) {
-                $client = Client::where('nci', $data['client']['nci'])->first();
+                $user = User::where('nci', $data['client']['nci'])->first();
             }
 
-            if ($client) {
-                // Client existe déjà, vérifier qu'il n'a pas déjà ce type de compte
-                $existingCompte = Compte::where('client_id', $client->id)
-                    ->where('type', $data['type'])
-                    ->first();
+            $isNewClient = !$user;
 
-                if ($existingCompte) {
-                    throw new CustomApiException(
-                        ErrorCode::COMPTE_ALREADY_EXISTS,
-                        HttpStatusCode::CONFLICT,
-                        'Ce client possède déjà un compte de ce type.',
-                        ['client_id' => $client->id, 'type' => $data['type']]
-                    );
-                }
-            } else {
-                // Créer le client et l'utilisateur
-                $client = $this->createClient($data['client']);
+            if (!$user) {
+                // Créer l'utilisateur
+                $user = $this->createUser($data['client']);
+            }
+
+            // Vérifier si le client existe déjà
+            $client = $user->client;
+
+            if (!$client) {
+                // Créer le client associé
+                $client = Client::create([
+                    'user_id' => $user->id,
+                ]);
             }
 
             // Créer le compte
@@ -76,52 +74,66 @@ class CompteService
                 'statut' => 'actif',
             ]);
 
+            // Envoyer l'email approprié selon le type de client via un job
+            try {
+                if ($isNewClient) {
+                    // Nouveau client : email avec identifiants
+                    \App\Jobs\SendWelcomeEmail::dispatch($user);
+                } else {
+                    // Client existant : email de confirmation de nouveau compte
+                    \App\Jobs\SendAccountConfirmationEmail::dispatch($compte);
+                }
+            } catch (\Exception $e) {
+                // Log the error but don't fail the account creation
+                \Log::error('Failed to dispatch email job: ' . $e->getMessage());
+            }
+
             return $compte;
         });
     }
 
     /**
-     * Créer un client avec son utilisateur
+     * Créer un utilisateur
      *
-     * @param array $clientData
-     * @return Client
+     * @param array $userData
+     * @return User
      */
-    private function createClient(array $clientData): Client
+    private function createUser(array $userData): User
     {
-        // Vérifier si l'utilisateur existe déjà
-        $user = User::where('email', $clientData['email'])
-                    ->orWhere('telephone', $clientData['telephone'])
-                    ->first();
+        // Générer un login unique
+        $login = $this->generateUniqueLogin();
 
-        if (!$user) {
-            // Générer un mot de passe aléatoire
-            $password = Str::random(8);
+        // Générer un mot de passe aléatoire
+        $plainPassword = Str::random(10);
 
-            // Créer l'utilisateur
-            $user = User::create([
-                'nom' => $clientData['nom'],
-                'email' => $clientData['email'],
-                'password' => Hash::make($password),
-                'telephone' => $clientData['telephone'],
-                'actif' => true,
-            ]);
-
-            // TODO: Envoyer le mot de passe par email ou SMS
-        }
-
-        // Créer le client associé
-        $client = Client::create([
-            'user_id' => $user->id,
-            'prenom' => $clientData['prenom'] ?? null,
-            'nom' => $clientData['nom'],
-            'email' => $clientData['email'],
-            'telephone' => $clientData['telephone'],
-            'adresse' => $clientData['adresse'] ?? null,
-            'nci' => $clientData['nci'] ?? null,
-            'date_naissance' => $clientData['date_naissance'] ?? null,
+        // Créer l'utilisateur
+        $user = User::create([
+            'nom' => $userData['nom'],
+            'prenom' => $userData['prenom'],
+            'email' => $userData['email'],
+            'password' => Hash::make($plainPassword),
+            'telephone' => $userData['telephone'],
+            'actif' => true,
+            'login' => $login,
+            'plain_password' => $plainPassword,
+            'nci' => $userData['nci'] ?? null,
         ]);
 
-        return $client;
+        return $user;
+    }
+
+    /**
+     * Générer un login unique
+     *
+     * @return string
+     */
+    private function generateUniqueLogin(): string
+    {
+        do {
+            $login = 'USER' . str_pad(mt_rand(10000, 99999), 5, '0', STR_PAD_LEFT);
+        } while (User::where('login', $login)->exists());
+
+        return $login;
     }
 
     /**

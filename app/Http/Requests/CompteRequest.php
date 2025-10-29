@@ -25,12 +25,12 @@ class CompteRequest extends FormRequest
         return [
             'type' => 'required|in:cheque,epargne',
             'solde' => 'required|numeric|min:10000',
-            'client.prenom' => 'nullable|string|max:100',
+            'client.prenom' => 'required|string|max:100',
             'client.nom' => 'required|string|max:100',
             'client.email' => 'required|email',
             'client.telephone' => ['required', new ValidTelephone()],
             'client.adresse' => 'nullable|string|max:255',
-            'client.nci' => 'nullable|string|max:50|unique:clients,nci',
+            'client.nci' => 'nullable|string|max:50|unique:users,nci',
             'client.date_naissance' => 'nullable|date',
         ];
     }

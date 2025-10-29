@@ -11,9 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('comptes', function (Blueprint $table) {
-            $table->date('date_debut_blocage')->nullable();
-            $table->date('date_fin_blocage')->nullable();
+        Schema::create('clients', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('user_id');
+            $table->timestamps();
+
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
@@ -22,8 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('comptes', function (Blueprint $table) {
-            $table->dropColumn(['date_debut_blocage', 'date_fin_blocage']);
-        });
+        Schema::dropIfExists('clients');
     }
 };

@@ -10,7 +10,7 @@ class NonArchiveScope implements Scope
 {
     public function apply(Builder $builder, Model $model)
     {
-        // On exclut les comptes archivés
-        $builder->whereNotIn('statut', ['archive', 'bloque']);
+        // On exclut les comptes supprimés
+        $builder->whereNotIn('statut', ['supprimé', 'bloque']);
     }
 }

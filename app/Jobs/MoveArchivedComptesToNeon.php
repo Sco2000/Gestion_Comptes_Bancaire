@@ -30,7 +30,7 @@ class MoveArchivedComptesToNeon implements ShouldQueue
      */
     public function handle(): void
     {
-        $archivedComptes = Compte::where('statut', 'archive')->get();
+        $archivedComptes = Compte::where('statut', 'supprimé')->get();
 
         foreach ($archivedComptes as $compte) {
             DB::transaction(function () use ($compte) {
@@ -45,7 +45,7 @@ class MoveArchivedComptesToNeon implements ShouldQueue
                     'type' => $compte->type,
                     'solde' => $compte->solde,
                     'date_creation' => $compte->date_creation,
-                    'statut' => 'archive',
+                    'statut' => 'supprimé',
                     'date_debut_blocage' => $compte->date_debut_blocage,
                     'date_fin_blocage' => $compte->date_fin_blocage,
                 ]);
@@ -58,44 +58,49 @@ class MoveArchivedComptesToNeon implements ShouldQueue
 
     private function copyClientToNeon($client)
     {
-        // Copy user if not exists
-        $neonUser = NeonUser::find($client->user_id);
-        if (!$neonUser) {
-            $user = $client->user;
-            NeonUser::create([
-                'id' => $user->id,
-                'nom' => $user->nom,
-                'email' => $user->email,
-                'password' => $user->password,
-                'telephone' => $user->telephone,
-                'actif' => $user->actif,
-                'email_verified_at' => $user->email_verified_at,
-            ]);
+        try {
+            // Copy user if not exists
+            $neonUser = NeonUser::find($client->user_id);
+            if (!$neonUser) {
+                $user = $client->user;
+                NeonUser::create([
+                    'id' => $user->id,
+                    'nom' => $user->nom,
+                    'email' => $user->email,
+                    'password' => $user->password,
+                    'telephone' => $user->telephone,
+                    'actif' => $user->actif,
+                    'email_verified_at' => $user->email_verified_at,
+                ]);
 
-            // Copy admin if exists
-            if ($user->admin) {
-                \App\Models\NeonAdmin::create([
-                    'id' => $user->admin->id,
-                    'user_id' => $user->admin->user_id,
-                    'matricule' => $user->admin->matricule,
+                // Copy admin if exists
+                if ($user->admin) {
+                    \App\Models\NeonAdmin::create([
+                        'id' => $user->admin->id,
+                        'user_id' => $user->admin->user_id,
+                        'matricule' => $user->admin->matricule,
+                    ]);
+                }
+            }
+
+            // Copy client if not exists
+            $neonClient = NeonClient::find($client->id);
+            if (!$neonClient) {
+                NeonClient::create([
+                    'id' => $client->id,
+                    'user_id' => $client->user_id,
+                    'prenom' => $client->prenom,
+                    'nom' => $client->nom,
+                    'email' => $client->email,
+                    'telephone' => $client->telephone,
+                    'adresse' => $client->adresse,
+                    'nci' => $client->nci,
+                    'date_naissance' => $client->date_naissance,
                 ]);
             }
-        }
-
-        // Copy client if not exists
-        $neonClient = NeonClient::find($client->id);
-        if (!$neonClient) {
-            NeonClient::create([
-                'id' => $client->id,
-                'user_id' => $client->user_id,
-                'prenom' => $client->prenom,
-                'nom' => $client->nom,
-                'email' => $client->email,
-                'telephone' => $client->telephone,
-                'adresse' => $client->adresse,
-                'nci' => $client->nci,
-                'date_naissance' => $client->date_naissance,
-            ]);
+        } catch (\Exception $e) {
+            // Log the error but don't fail the main operation
+            \Log::error('Failed to copy client to Neon: ' . $e->getMessage());
         }
     }
 }

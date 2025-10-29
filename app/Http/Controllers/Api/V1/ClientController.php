@@ -107,17 +107,17 @@ class ClientController extends Controller
                 'email' => 'nullable|email',
                 'telephone' => ['nullable', new \App\Rules\ValidTelephone()],
                 'adresse' => 'nullable|string|max:255',
-                'nci' => 'nullable|string|max:50|unique:clients,nci,' . $clientId,
+                'nci' => 'nullable|string|max:50|unique:users,nci,' . $client->user->id,
                 'date_naissance' => 'nullable|date',
             ]);
 
             // Séparer les données client et utilisateur
             $clientData = array_intersect_key($validatedData, array_flip([
-                'prenom', 'nom', 'adresse', 'nci', 'date_naissance'
+                'adresse', 'date_naissance'
             ]));
 
             $userData = array_intersect_key($validatedData, array_flip([
-                'email', 'telephone'
+                'prenom', 'nom', 'email', 'telephone', 'nci'
             ]));
 
             // Mettre à jour le client
