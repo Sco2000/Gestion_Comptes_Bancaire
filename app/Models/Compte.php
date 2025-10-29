@@ -60,7 +60,16 @@ class Compte extends Model
             return in_array($newStatus, ['actif', 'archive']);
         }
 
-        // Pour les comptes épargne, tous les statuts sont autorisés
-        return in_array($newStatus, ['actif', 'bloque', 'archive']);
+        // Pour les comptes épargne
+        if ($this->type === 'epargne') {
+            // Un compte épargne bloqué ne peut pas être archivé
+            if ($this->statut === 'bloque' && $newStatus === 'archive') {
+                return false;
+            }
+
+            return in_array($newStatus, ['actif', 'bloque', 'archive']);
+        }
+
+        return false;
     }
 }

@@ -87,6 +87,12 @@ class CompteRepository
     public function update(string $id, array $data): Compte
     {
         $compte = $this->findById($id);
+
+        // Si non trouvé, essayer avec les archivés
+        if (!$compte) {
+            $compte = $this->findByIdWithArchived($id);
+        }
+
         if ($compte) {
             $compte->update($data);
         }

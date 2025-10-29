@@ -152,7 +152,7 @@ class CompteController extends Controller
      * @OA\Post(
      *     path="/api/v1/comptes",
      *     summary="Créer un nouveau compte bancaire",
-     *     description="Crée un nouveau compte bancaire avec un client associé",
+     *     description="Crée un nouveau compte bancaire. Si le client existe déjà (via CNI), ajoute le compte au client existant. Sinon, crée d'abord le client.",
      *     operationId="createCompte",
      *     tags={"Comptes"},
      *     @OA\RequestBody(
@@ -161,11 +161,14 @@ class CompteController extends Controller
      *             required={"type","solde","client"},
      *             @OA\Property(property="type", type="string", enum={"cheque","epargne"}, example="cheque"),
      *             @OA\Property(property="solde", type="number", minimum=10000, example=50000),
-     *             @OA\Property(property="client", type="object", required={"prenom","nom","email","telephone"},
-     *                 @OA\Property(property="prenom", type="string", example="John"),
+     *             @OA\Property(property="client", type="object", required={"nom","email","telephone"},
+     *                 @OA\Property(property="prenom", type="string", nullable=true, example="John"),
      *                 @OA\Property(property="nom", type="string", example="Doe"),
      *                 @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
-     *                 @OA\Property(property="telephone", type="string", example="+221771234567")
+     *                 @OA\Property(property="telephone", type="string", example="+221771234567"),
+     *                 @OA\Property(property="nci", type="string", nullable=true, example="1234567890123"),
+     *                 @OA\Property(property="adresse", type="string", nullable=true, example="123 Main St"),
+     *                 @OA\Property(property="date_naissance", type="string", format="date", nullable=true, example="1990-01-01")
      *             )
      *         )
      *     ),
@@ -183,6 +186,13 @@ class CompteController extends Controller
      *                 @OA\Property(property="statut", type="string", example="actif")
      *             ),
      *             @OA\Property(property="message", type="string", example="Compte créé avec succès")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=409,
+     *         description="Le client possède déjà ce type de compte",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Ce client possède déjà un compte de ce type.")
      *         )
      *     ),
      *     @OA\Response(
@@ -379,49 +389,12 @@ class CompteController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        // Essayer d'abord de récupérer le compte non archivé
-        $compte = $this->compteService->getCompte($id);
-
-        // Si non trouvé, essayer avec les archivés
-        if (!$compte) {
-            $compte = $this->compteService->getCompteWithArchived($id);
-        }
-
-        // Si toujours pas trouvé, retourner une erreur 404
-        if (!$compte) {
-            throw new CustomApiException(
-                ErrorCode::COMPTE_NOT_FOUND,
-                HttpStatusCode::NOT_FOUND,
-                null,
-                ['compteId' => $id]
-            );
-        }
-
         $data = $request->only(['statut', 'date_debut_blocage', 'date_fin_blocage']);
 
-        // Vérifier si le nouveau statut est autorisé pour ce type de compte
-        if (isset($data['statut']) && !$compte->canChangeStatus($data['statut'])) {
-            throw new CustomApiException(
-                ErrorCode::COMPTE_STATUS_INVALID,
-                HttpStatusCode::BAD_REQUEST,
-                null,
-                ['compteId' => $id, 'requestedStatus' => $data['statut']]
-            );
-        }
+        // Valider les dates de blocage
+        $this->compteService->validateBlockingDates($data);
 
-        // Si le statut est 'bloque', vérifier que les dates sont fournies
-        if (isset($data['statut']) && $data['statut'] === 'bloque') {
-            if (!isset($data['date_debut_blocage']) || !isset($data['date_fin_blocage'])) {
-                throw new CustomApiException(
-                    ErrorCode::VALIDATION_ERROR,
-                    HttpStatusCode::BAD_REQUEST,
-                    'Les dates de début et fin de blocage sont obligatoires lors du blocage d\'un compte.',
-                    ['compteId' => $id]
-                );
-            }
-        }
-
-        $compte->update($data);
+        $compte = $this->compteService->updateCompte($id, $data);
 
         $compteResource = app(CompteResource::class, ['compte' => $compte]);
         return $this->successResponse($compteResource, 'Compte modifié avec succès');

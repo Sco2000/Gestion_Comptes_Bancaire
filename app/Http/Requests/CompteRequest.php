@@ -25,11 +25,12 @@ class CompteRequest extends FormRequest
         return [
             'type' => 'required|in:cheque,epargne',
             'solde' => 'required|numeric|min:10000',
-            'client.prenom' => 'required|string|max:100',
+            'client.prenom' => 'nullable|string|max:100',
             'client.nom' => 'required|string|max:100',
-            'client.email' => 'required|email|unique:users,email',
-            'client.telephone' => ['required', new ValidTelephone(), 'unique:users,telephone'],
+            'client.email' => 'required|email',
+            'client.telephone' => ['required', new ValidTelephone()],
             'client.adresse' => 'nullable|string|max:255',
+            'client.nci' => 'nullable|string|max:50|unique:clients,nci',
             'client.date_naissance' => 'nullable|date',
         ];
     }
@@ -45,9 +46,8 @@ class CompteRequest extends FormRequest
             'client.nom.required' => 'Le nom du client est obligatoire.',
             'client.email.required' => 'L\'email du client est obligatoire.',
             'client.email.email' => 'L\'email du client n\'est pas valide.',
-            'client.email.unique' => 'Cet email est déjà utilisé.',
             'client.telephone.required' => 'Le téléphone du client est obligatoire.',
-            'client.telephone.unique' => 'Ce numéro de téléphone est déjà utilisé.',
+            'client.nci.unique' => 'Ce numéro CNI est déjà utilisé.',
         ];
     }
 }

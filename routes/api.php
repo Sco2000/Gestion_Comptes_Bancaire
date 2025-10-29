@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\CompteController;
+use App\Http\Controllers\Api\V1\ClientController;
 use App\Http\Controllers\Api\V1\AuthController;
 
 /*
@@ -24,4 +25,7 @@ Route::prefix('v1')->group(function(){
     Route::put('/comptes/{id}', [CompteController::class, 'update']);
     Route::delete('/comptes/{id}', [CompteController::class, 'destroy']);
     Route::patch('/comptes/{id}/restore', [CompteController::class, 'restore']);
+
+    // Routes des clients
+    Route::patch('/clients/{compteId}', [ClientController::class, 'update']);
 });

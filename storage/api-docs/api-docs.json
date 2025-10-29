@@ -263,7 +263,7 @@
                     "Comptes"
                 ],
                 "summary": "Créer un nouveau compte bancaire",
-                "description": "Crée un nouveau compte bancaire avec un client associé",
+                "description": "Crée un nouveau compte bancaire. Si le client existe déjà (via CNI), ajoute le compte au client existant. Sinon, crée d'abord le client.",
                 "operationId": "createCompte",
                 "requestBody": {
                     "required": true,
@@ -291,7 +291,6 @@
                                     },
                                     "client": {
                                         "required": [
-                                            "prenom",
                                             "nom",
                                             "email",
                                             "telephone"
@@ -299,7 +298,8 @@
                                         "properties": {
                                             "prenom": {
                                                 "type": "string",
-                                                "example": "John"
+                                                "example": "John",
+                                                "nullable": true
                                             },
                                             "nom": {
                                                 "type": "string",
@@ -313,6 +313,22 @@
                                             "telephone": {
                                                 "type": "string",
                                                 "example": "+221771234567"
+                                            },
+                                            "nci": {
+                                                "type": "string",
+                                                "example": "1234567890123",
+                                                "nullable": true
+                                            },
+                                            "adresse": {
+                                                "type": "string",
+                                                "example": "123 Main St",
+                                                "nullable": true
+                                            },
+                                            "date_naissance": {
+                                                "type": "string",
+                                                "format": "date",
+                                                "example": "1990-01-01",
+                                                "nullable": true
                                             }
                                         },
                                         "type": "object"
@@ -366,6 +382,22 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Compte créé avec succès"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Le client possède déjà ce type de compte",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Ce client possède déjà un compte de ce type."
                                         }
                                     },
                                     "type": "object"
