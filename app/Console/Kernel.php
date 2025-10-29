@@ -12,7 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Move archived comptes to Neon every day at 00:00
+        $schedule->job(new \App\Jobs\MoveArchivedComptesToNeon)->dailyAt('00:00');
     }
 
     /**

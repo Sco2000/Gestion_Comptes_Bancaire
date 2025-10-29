@@ -22,13 +22,13 @@
                     "Comptes"
                 ],
                 "summary": "Lister les comptes bancaires",
-                "description": "Récupère la liste des comptes bancaires avec possibilité de filtrage, tri et pagination",
+                "description": "Récupère la liste des comptes bancaires avec possibilité de filtrage, tri et pagination. Pour les comptes bloqués, recherche aussi dans la base Neon.",
                 "operationId": "getComptes",
                 "parameters": [
                     {
                         "name": "type",
                         "in": "query",
-                        "description": "Type de compte (epargne, cheque, etc.)",
+                        "description": "Type de compte (epargne, cheque)",
                         "required": false,
                         "schema": {
                             "type": "string",
@@ -41,13 +41,14 @@
                     {
                         "name": "statut",
                         "in": "query",
-                        "description": "Statut du compte (actif, bloque)",
+                        "description": "Statut du compte (actif, bloque, archive). Pour 'bloque', inclut les comptes de la base Neon.",
                         "required": false,
                         "schema": {
                             "type": "string",
                             "enum": [
                                 "actif",
-                                "bloque"
+                                "bloque",
+                                "archive"
                             ]
                         }
                     },
@@ -150,13 +151,26 @@
                                                         "type": "string",
                                                         "enum": [
                                                             "actif",
-                                                            "bloque"
+                                                            "bloque",
+                                                            "archive"
                                                         ],
                                                         "example": "bloque"
                                                     },
                                                     "motifBlocage": {
                                                         "type": "string",
                                                         "example": "Inactivité de 30+ jours",
+                                                        "nullable": true
+                                                    },
+                                                    "dateDebutBlocage": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "2023-06-01",
+                                                        "nullable": true
+                                                    },
+                                                    "dateFinBlocage": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "2023-06-15",
                                                         "nullable": true
                                                     },
                                                     "metadata": {
@@ -419,7 +433,7 @@
                     "Comptes"
                 ],
                 "summary": "Obtenir les détails d'un compte",
-                "description": "Récupère les informations détaillées d'un compte bancaire spécifique",
+                "description": "Récupère les informations détaillées d'un compte bancaire spécifique. Recherche d'abord dans la base principale, puis dans Neon pour les comptes bloqués.",
                 "operationId": "getCompte",
                 "parameters": [
                     {
@@ -468,6 +482,11 @@
                                                 },
                                                 "statut": {
                                                     "type": "string",
+                                                    "enum": [
+                                                        "actif",
+                                                        "bloque",
+                                                        "archive"
+                                                    ],
                                                     "example": "actif"
                                                 }
                                             },
@@ -540,7 +559,7 @@
                     "Comptes"
                 ],
                 "summary": "Modifier un compte bancaire",
-                "description": "Modifie le statut d'un compte bancaire existant",
+                "description": "Modifie le statut d'un compte bancaire existant. Le changement de statut déclenche automatiquement les jobs de transfert vers/depuis Neon.",
                 "operationId": "updateCompte",
                 "parameters": [
                     {
@@ -567,9 +586,24 @@
                                         "type": "string",
                                         "enum": [
                                             "actif",
-                                            "bloque"
+                                            "bloque",
+                                            "archive"
                                         ],
                                         "example": "bloque"
+                                    },
+                                    "dateDebutBlocage": {
+                                        "description": "Date de début de blocage (obligatoire si statut = bloque)",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2023-06-01",
+                                        "nullable": true
+                                    },
+                                    "dateFinBlocage": {
+                                        "description": "Date de fin de blocage (obligatoire si statut = bloque)",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2023-06-15",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -612,6 +646,11 @@
                                                 },
                                                 "statut": {
                                                     "type": "string",
+                                                    "enum": [
+                                                        "actif",
+                                                        "bloque",
+                                                        "archive"
+                                                    ],
                                                     "example": "bloque"
                                                 }
                                             },
@@ -732,6 +771,85 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Compte non trouvé"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/comptes/{id}/restore": {
+            "patch": {
+                "tags": [
+                    "Comptes"
+                ],
+                "summary": "Restaurer un compte archivé depuis Neon",
+                "description": "Restaure un compte archivé depuis la base de données Neon vers la base principale",
+                "operationId": "restoreArchivedCompte",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID du compte bancaire archivé",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Demande de restauration envoyée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "null"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Demande de restauration du compte envoyée"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Compte non trouvé dans Neon",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Compte non trouvé"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Erreur lors de la restauration"
                                         }
                                     },
                                     "type": "object"

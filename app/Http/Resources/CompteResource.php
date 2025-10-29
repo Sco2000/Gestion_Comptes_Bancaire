@@ -17,7 +17,7 @@ class CompteResource extends JsonResource
         $data = [
             'id' => $this->id,
             'numeroCompte' => $this->numero_compte,
-            'titulaire' => $this->client->prenom.' '.$this->client->nom,
+            'titulaire' => $this->client->user->nom,
             'type' => $this->type,
             'solde' => $this->solde,
             'devise' => 'FCFA',
@@ -31,6 +31,8 @@ class CompteResource extends JsonResource
 
         if ($this->statut === 'bloque') {
             $data['motifBlocage'] = $this->motif_blocage;
+            $data['dateDebutBlocage'] = $this->date_debut_blocage;
+            $data['dateFinBlocage'] = $this->date_fin_blocage;
         }
 
         return $data;

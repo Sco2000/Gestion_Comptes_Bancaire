@@ -19,6 +19,8 @@ class Compte extends Model
         'solde',
         'date_creation',
         'statut',
+        'date_debut_blocage',
+        'date_fin_blocage',
     ];
 
     protected static function booted()
@@ -27,6 +29,22 @@ class Compte extends Model
         static::creating(function ($model) {
             if (empty($model->id)) {
                 $model->id = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+
+        // Handle status changes
+        static::updating(function ($model) {
+            if ($model->isDirty('statut')) {
+                $originalStatus = $model->getOriginal('statut');
+                $newStatus = $model->statut;
+
+                if ($newStatus === 'bloque' && $originalStatus !== 'bloque') {
+                    // Dispatch job to move blocked compte to Neon
+                    \App\Jobs\MoveBlockedCompteToNeon::dispatch($model->id);
+                } elseif ($newStatus === 'actif' && $originalStatus === 'bloque') {
+                    // Dispatch job to restore unblocked compte from Neon
+                    \App\Jobs\RestoreUnblockedCompteFromNeon::dispatch($model->id);
+                }
             }
         });
     }

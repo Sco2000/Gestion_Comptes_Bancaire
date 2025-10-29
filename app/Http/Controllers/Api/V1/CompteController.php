@@ -25,22 +25,22 @@ class CompteController extends Controller
      * @OA\Get(
      *     path="/api/v1/comptes",
      *     summary="Lister les comptes bancaires",
-     *     description="Récupère la liste des comptes bancaires avec possibilité de filtrage, tri et pagination",
+     *     description="Récupère la liste des comptes bancaires avec possibilité de filtrage, tri et pagination. Pour les comptes bloqués, recherche aussi dans la base Neon.",
      *     operationId="getComptes",
      *     tags={"Comptes"},
      *     @OA\Parameter(
      *         name="type",
      *         in="query",
-     *         description="Type de compte (epargne, cheque, etc.)",
+     *         description="Type de compte (epargne, cheque)",
      *         required=false,
      *         @OA\Schema(type="string", enum={"epargne", "cheque"})
      *     ),
      *     @OA\Parameter(
      *         name="statut",
      *         in="query",
-     *         description="Statut du compte (actif, bloque)",
+     *         description="Statut du compte (actif, bloque, archive). Pour 'bloque', inclut les comptes de la base Neon.",
      *         required=false,
-     *         @OA\Schema(type="string", enum={"actif", "bloque"})
+     *         @OA\Schema(type="string", enum={"actif", "bloque", "archive"})
      *     ),
      *     @OA\Parameter(
      *         name="search",
@@ -83,8 +83,10 @@ class CompteController extends Controller
      *                 @OA\Property(property="solde", type="number", format="float", example=1250000),
      *                 @OA\Property(property="devise", type="string", example="FCFA"),
      *                 @OA\Property(property="dateCreation", type="string", format="date-time", example="2023-03-15T00:00:00Z"),
-     *                 @OA\Property(property="statut", type="string", enum={"actif", "bloque"}, example="bloque"),
+     *                 @OA\Property(property="statut", type="string", enum={"actif", "bloque", "archive"}, example="bloque"),
      *                 @OA\Property(property="motifBlocage", type="string", nullable=true, example="Inactivité de 30+ jours"),
+     *                 @OA\Property(property="dateDebutBlocage", type="string", format="date", nullable=true, example="2023-06-01"),
+     *                 @OA\Property(property="dateFinBlocage", type="string", format="date", nullable=true, example="2023-06-15"),
      *                 @OA\Property(property="metadata", type="object", nullable=true,
      *                     @OA\Property(property="derniereModification", type="string", format="date-time", example="2023-06-10T14:30:00Z"),
      *                     @OA\Property(property="version", type="integer", example=1)
@@ -122,6 +124,21 @@ class CompteController extends Controller
             $limit = min($request->get('limit', 10), 100);
 
             $comptes = $this->compteService->listComptes($filters, $sort, $order, $limit, null);
+
+            // Si on demande les comptes bloqués, ajouter ceux de Neon
+            if (isset($filters['statut']) && $filters['statut'] === 'bloque') {
+                $neonComptes = DB::connection('neon')->table('comptes')
+                    ->where('statut', 'bloque')
+                    ->orderBy('created_at', 'desc')
+                    ->get()
+                    ->map(function ($neonCompte) {
+                        return new Compte((array) $neonCompte);
+                    });
+
+                // Fusionner les collections
+                $comptes = $comptes->merge($neonComptes);
+            }
+
             // Liaison via le conteneur (pas de new / pas de static)
             $compteCollection = app('compte.resource.collection', ['collection' => $comptes]);
 
@@ -210,7 +227,7 @@ class CompteController extends Controller
      * @OA\Get(
      *     path="/api/v1/comptes/{compteId}",
      *     summary="Obtenir les détails d'un compte",
-     *     description="Récupère les informations détaillées d'un compte bancaire spécifique",
+     *     description="Récupère les informations détaillées d'un compte bancaire spécifique. Recherche d'abord dans la base principale, puis dans Neon pour les comptes bloqués.",
      *     operationId="getCompte",
      *     tags={"Comptes"},
      *     @OA\Parameter(
@@ -231,7 +248,7 @@ class CompteController extends Controller
      *                 @OA\Property(property="titulaire", type="string", example="John Doe"),
      *                 @OA\Property(property="type", type="string", example="cheque"),
      *                 @OA\Property(property="solde", type="number", example=50000),
-     *                 @OA\Property(property="statut", type="string", example="actif")
+     *                 @OA\Property(property="statut", type="string", enum={"actif", "bloque", "archive"}, example="actif")
      *             ),
      *             @OA\Property(property="message", type="string", example="Détails du compte")
      *         )
@@ -270,6 +287,16 @@ class CompteController extends Controller
                 $compte = $this->compteService->getCompteWithArchived($compteId);
             }
 
+            // Si toujours pas trouvé, chercher dans Neon (comptes bloqués)
+            if (!$compte) {
+                $neonCompte = DB::connection('neon')->table('comptes')->where('id', $compteId)->first();
+                if ($neonCompte) {
+                    // Convertir l'objet stdClass en array pour créer une instance Compte temporaire
+                    $compteData = (array) $neonCompte;
+                    $compte = new Compte($compteData);
+                }
+            }
+
             // Si toujours pas trouvé, retourner une erreur 404
             if (!$compte) {
                 throw new CustomApiException(
@@ -291,7 +318,7 @@ class CompteController extends Controller
      * @OA\Put(
      *     path="/api/v1/comptes/{id}",
      *     summary="Modifier un compte bancaire",
-     *     description="Modifie le statut d'un compte bancaire existant",
+     *     description="Modifie le statut d'un compte bancaire existant. Le changement de statut déclenche automatiquement les jobs de transfert vers/depuis Neon.",
      *     operationId="updateCompte",
      *     tags={"Comptes"},
      *     @OA\Parameter(
@@ -305,7 +332,9 @@ class CompteController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             required={"statut"},
-     *             @OA\Property(property="statut", type="string", enum={"actif", "bloque"}, example="bloque")
+     *             @OA\Property(property="statut", type="string", enum={"actif", "bloque", "archive"}, example="bloque"),
+     *             @OA\Property(property="dateDebutBlocage", type="string", format="date", nullable=true, example="2023-06-01", description="Date de début de blocage (obligatoire si statut = bloque)"),
+     *             @OA\Property(property="dateFinBlocage", type="string", format="date", nullable=true, example="2023-06-15", description="Date de fin de blocage (obligatoire si statut = bloque)")
      *         )
      *     ),
      *     @OA\Response(
@@ -319,7 +348,7 @@ class CompteController extends Controller
      *                 @OA\Property(property="titulaire", type="string", example="John Doe"),
      *                 @OA\Property(property="type", type="string", example="cheque"),
      *                 @OA\Property(property="solde", type="number", example=50000),
-     *                 @OA\Property(property="statut", type="string", example="bloque")
+     *                 @OA\Property(property="statut", type="string", enum={"actif", "bloque", "archive"}, example="bloque")
      *             ),
      *             @OA\Property(property="message", type="string", example="Compte modifié avec succès")
      *         )
@@ -368,7 +397,7 @@ class CompteController extends Controller
             );
         }
 
-        $data = $request->only(['statut']);
+        $data = $request->only(['statut', 'date_debut_blocage', 'date_fin_blocage']);
 
         // Vérifier si le nouveau statut est autorisé pour ce type de compte
         if (isset($data['statut']) && !$compte->canChangeStatus($data['statut'])) {
@@ -378,6 +407,18 @@ class CompteController extends Controller
                 null,
                 ['compteId' => $id, 'requestedStatus' => $data['statut']]
             );
+        }
+
+        // Si le statut est 'bloque', vérifier que les dates sont fournies
+        if (isset($data['statut']) && $data['statut'] === 'bloque') {
+            if (!isset($data['date_debut_blocage']) || !isset($data['date_fin_blocage'])) {
+                throw new CustomApiException(
+                    ErrorCode::VALIDATION_ERROR,
+                    HttpStatusCode::BAD_REQUEST,
+                    'Les dates de début et fin de blocage sont obligatoires lors du blocage d\'un compte.',
+                    ['compteId' => $id]
+                );
+            }
         }
 
         $compte->update($data);
@@ -424,6 +465,57 @@ class CompteController extends Controller
             $this->compteService->archiveCompte($id);
 
             return $this->successResponse(null, 'Compte archivé avec succès');
+        } catch (\Throwable $e) {
+            throw $e; // Let the middleware handle it
+        }
+    }
+
+    /**
+     * @OA\Patch(
+     *     path="/api/v1/comptes/{id}/restore",
+     *     summary="Restaurer un compte archivé depuis Neon",
+     *     description="Restaure un compte archivé depuis la base de données Neon vers la base principale",
+     *     operationId="restoreArchivedCompte",
+     *     tags={"Comptes"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID du compte bancaire archivé",
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Demande de restauration envoyée avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="null"),
+     *             @OA\Property(property="message", type="string", example="Demande de restauration du compte envoyée")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Compte non trouvé dans Neon",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Compte non trouvé")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Erreur lors de la restauration")
+     *         )
+     *     )
+     * )
+     */
+    public function restore(Request $request, string $id)
+    {
+        try {
+            // Dispatch job to restore archived compte from Neon
+            \App\Jobs\RestoreArchivedCompteFromNeon::dispatch($id);
+
+            return $this->successResponse(null, 'Demande de restauration du compte envoyée');
         } catch (\Throwable $e) {
             throw $e; // Let the middleware handle it
         }

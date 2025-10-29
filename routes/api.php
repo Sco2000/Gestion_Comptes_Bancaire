@@ -23,4 +23,5 @@ Route::prefix('v1')->group(function(){
     Route::post('/comptes', [CompteController::class, 'store']);
     Route::put('/comptes/{id}', [CompteController::class, 'update']);
     Route::delete('/comptes/{id}', [CompteController::class, 'destroy']);
+    Route::patch('/comptes/{id}/restore', [CompteController::class, 'restore']);
 });

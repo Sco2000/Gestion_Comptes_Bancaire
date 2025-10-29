@@ -26,6 +26,7 @@ class CompteRepository
         }
 
         if (!empty($filters['statut'])) {
+            $query->withoutGlobalScopes();
             $query->where('statut', $filters['statut']);
         }
 
