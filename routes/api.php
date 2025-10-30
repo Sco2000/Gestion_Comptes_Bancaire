@@ -18,13 +18,20 @@ use App\Http\Controllers\Api\V1\AuthController;
 */
 
 Route::prefix('v1')->group(function(){
-    // Routes des comptes (sans authentification)
-    Route::get('/comptes', [CompteController::class, 'index']);
-    Route::get('/comptes/{compteId}', [CompteController::class, 'show']);
-    Route::post('/comptes', [CompteController::class, 'store']);
-    Route::put('/comptes/{id}', [CompteController::class, 'update']);
-    Route::delete('/comptes/{id}', [CompteController::class, 'destroy']);
-    Route::patch('/comptes/{id}/restore', [CompteController::class, 'restore']);
+    // Routes d'authentification
+    Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+    Route::middleware('auth:api')->post('/auth/logout', [AuthController::class, 'logout']);
+
+    // Routes des comptes avec authentification et autorisation
+    Route::middleware(['auth:api'])->group(function() {
+        Route::get('/comptes', [CompteController::class, 'index'])->middleware('role:admin');
+        Route::get('/comptes/{compteId}', [CompteController::class, 'show'])->middleware('role:admin,client');
+        Route::post('/comptes', [CompteController::class, 'store'])->middleware('role:admin');
+        Route::put('/comptes/{id}', [CompteController::class, 'update'])->middleware('role:admin');
+        Route::delete('/comptes/{id}', [CompteController::class, 'destroy'])->middleware('role:admin');
+        Route::patch('/comptes/{id}/restore', [CompteController::class, 'restore'])->middleware('role:admin');
+    });
 
     // Routes des clients
     Route::patch('/clients/{compteId}', [ClientController::class, 'update']);

@@ -29,6 +29,7 @@ class CompteController extends Controller
      *     description="Récupère la liste des comptes bancaires avec possibilité de filtrage, tri et pagination. Pour les comptes bloqués, recherche aussi dans la base Neon.",
      *     operationId="getComptes",
      *     tags={"Comptes"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="type",
      *         in="query",
@@ -119,18 +120,32 @@ class CompteController extends Controller
     public function index(Request $request)
     {
         try {
+            $user = auth()->user();
+
             $filters = $request->only(['type', 'statut', 'search']);
             $sort = $request->get('sort', 'created_at');
             $order = $request->get('order', 'desc');
             $limit = min($request->get('limit', 10), 100);
 
-            $comptes = $this->compteService->listComptes($filters, $sort, $order, $limit, null);
+            // Pour les clients, filtrer seulement leurs comptes
+            $clientId = null;
+            if ($user->isClient()) {
+                $clientId = $user->client->id;
+            }
+
+            $comptes = $this->compteService->listComptes($filters, $sort, $order, $limit, $clientId);
 
             // Si on demande les comptes bloqués, ajouter ceux de Neon
             if (isset($filters['statut']) && $filters['statut'] === 'bloque') {
-                $neonComptes = DB::connection('neon')->table('comptes')
-                    ->where('statut', 'bloque')
-                    ->orderBy('created_at', 'desc')
+                $neonQuery = DB::connection('neon')->table('comptes')
+                    ->where('statut', 'bloque');
+
+                // Pour les clients, filtrer seulement leurs comptes bloqués
+                if ($clientId) {
+                    $neonQuery->where('client_id', $clientId);
+                }
+
+                $neonComptes = $neonQuery->orderBy('created_at', 'desc')
                     ->get()
                     ->map(function ($neonCompte) {
                         return new Compte((array) $neonCompte);
@@ -156,6 +171,7 @@ class CompteController extends Controller
      *     description="Crée un nouveau compte bancaire. Si le client existe déjà (via CNI), ajoute le compte au client existant. Sinon, crée d'abord le client.",
      *     operationId="createCompte",
      *     tags={"Comptes"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -241,6 +257,7 @@ class CompteController extends Controller
      *     description="Récupère les informations détaillées d'un compte bancaire spécifique. Recherche d'abord dans la base principale, puis dans Neon pour les comptes bloqués.",
      *     operationId="getCompte",
      *     tags={"Comptes"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="compteId",
      *         in="path",
@@ -290,6 +307,8 @@ class CompteController extends Controller
     public function show(Request $request, string $compteId)
     {
         try {
+            $user = auth()->user();
+
             // Essayer d'abord de récupérer le compte non archivé
             $compte = $this->compteService->getCompte($compteId);
 
@@ -318,6 +337,16 @@ class CompteController extends Controller
                 );
             }
 
+            // Pour les clients, vérifier que le compte leur appartient
+            if ($user->isClient() && $compte->client_id !== $user->client->id) {
+                throw new CustomApiException(
+                    ErrorCode::ACCESS_DENIED,
+                    HttpStatusCode::FORBIDDEN,
+                    'Vous n\'avez pas accès à ce compte',
+                    []
+                );
+            }
+
             $compteResource = app(CompteResource::class, ['compte' => $compte]);
             return $this->successResponse($compteResource, 'Détails du compte');
         } catch (\Throwable $e) {
@@ -332,6 +361,7 @@ class CompteController extends Controller
      *     description="Modifie le statut d'un compte bancaire existant. Le changement de statut déclenche automatiquement les jobs de transfert vers/depuis Neon.",
      *     operationId="updateCompte",
      *     tags={"Comptes"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -343,7 +373,7 @@ class CompteController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             required={"statut"},
-     *                 @OA\Property(property="statut", type="string", enum={"actif", "bloque", "supprimé"}, example="bloque"),
+     *             @OA\Property(property="statut", type="string", enum={"actif", "bloque", "supprimé"}, example="supprimé"),
      *             @OA\Property(property="dateDebutBlocage", type="string", format="date", nullable=true, example="2023-06-01", description="Date de début de blocage (obligatoire si statut = bloque)"),
      *             @OA\Property(property="dateFinBlocage", type="string", format="date", nullable=true, example="2023-06-15", description="Date de fin de blocage (obligatoire si statut = bloque)")
      *         )
@@ -359,7 +389,7 @@ class CompteController extends Controller
      *                 @OA\Property(property="titulaire", type="string", example="John Doe"),
      *                 @OA\Property(property="type", type="string", example="cheque"),
      *                 @OA\Property(property="solde", type="number", example=50000),
-     *                 @OA\Property(property="statut", type="string", enum={"actif", "bloque", "supprimé"}, example="bloque")
+     *                 @OA\Property(property="statut", type="string", enum={"actif", "bloque", "supprimé"}, example="supprimé")
      *             ),
      *             @OA\Property(property="message", type="string", example="Compte modifié avec succès")
      *         )
@@ -408,6 +438,7 @@ class CompteController extends Controller
      *     description="Supprime un compte bancaire existant (soft delete)",
      *     operationId="deleteCompte",
      *     tags={"Comptes"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -451,6 +482,7 @@ class CompteController extends Controller
      *     description="Restaure un compte bloqué depuis la base de données Neon vers la base principale",
      *     operationId="restoreBlockedCompte",
      *     tags={"Comptes"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",

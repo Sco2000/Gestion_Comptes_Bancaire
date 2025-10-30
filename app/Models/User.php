@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Passport\HasApiTokens;
+use Laravel\Passport\Passport;
 
 
 class User extends Authenticatable
@@ -93,5 +94,55 @@ class User extends Authenticatable
     public function isClient()
     {
         return $this->client()->exists();
+    }
+
+    /**
+     * Définir les scopes pour les permissions
+     */
+    public function scopeWithScopes($query, array $scopes)
+    {
+        return $query->whereHas('tokens', function ($tokenQuery) use ($scopes) {
+            $tokenQuery->whereJsonContains('scopes', $scopes);
+        });
+    }
+
+    /**
+     * Obtenir le rôle de l'utilisateur pour les claims personnalisés
+     */
+    public function getRoleAttribute()
+    {
+        if ($this->isAdmin()) {
+            return 'admin';
+        } elseif ($this->isClient()) {
+            return 'client';
+        }
+        return 'user';
+    }
+
+    /**
+     * Obtenir les permissions de l'utilisateur
+     */
+    public function getPermissionsAttribute()
+    {
+        $permissions = [];
+
+        if ($this->isAdmin()) {
+            $permissions = [
+                'comptes.read',
+                'comptes.write',
+                'comptes.delete',
+                'clients.read',
+                'clients.write',
+                'users.read',
+                'users.write',
+            ];
+        } elseif ($this->isClient()) {
+            $permissions = [
+                'comptes.read',
+                'comptes.write',
+            ];
+        }
+
+        return $permissions;
     }
 }

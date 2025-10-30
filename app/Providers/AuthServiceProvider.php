@@ -24,6 +24,23 @@ class AuthServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerPolicies();
+
         // Passport::routes();
+
+        // Définir les scopes pour les permissions
+        Passport::tokensCan([
+            'comptes.read' => 'Lire les comptes',
+            'comptes.write' => 'Écrire les comptes',
+            'comptes.delete' => 'Supprimer les comptes',
+            'clients.read' => 'Lire les clients',
+            'clients.write' => 'Écrire les clients',
+            'users.read' => 'Lire les utilisateurs',
+            'users.write' => 'Écrire les utilisateurs',
+        ]);
+
+        // Personnaliser les claims du token
+        Passport::setDefaultScope([
+            'comptes.read',
+        ]);
     }
 }
