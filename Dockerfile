@@ -77,5 +77,8 @@ USER laravel
 # Exposer le port 8000
 EXPOSE 8000
 
+# Définir l'entrée du conteneur
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
 # Commande par défaut
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
