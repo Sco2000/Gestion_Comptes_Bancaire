@@ -1,0 +1,103 @@
+services:
+  - type: web
+    name: gestion-comptes-web
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: APP_NAME
+        value: "Gestion Comptes"
+      - key: APP_ENV
+        value: "production"
+      - key: APP_KEY
+        value: "base64:y9M6ddqRCRnAiguUaGnJlP7gOdSkt2vevCSxN9WHym0="
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        value: "https://gestion-comptes-bancaire-marra-ousmane.onrender.com"
+      - key: LOG_CHANNEL
+        value: "stack"
+      - key: LOG_LEVEL
+        value: "debug"
+
+      # Base de données principale
+      - key: DB_CONNECTION
+        value: "pgsql"
+      - key: DB_HOST
+        value: "dpg-d3t32h6uk2gs73espqpg-a.frankfurt-postgres.render.com"
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_DATABASE
+        value: "gestion_comptes"
+      - key: DB_USERNAME
+        value: "gestion_comptes_user"
+      - key: DB_PASSWORD
+        value: "rA5ZYVAZzyShxR8ZkG4xJhxf37rrel6Y"
+
+      # Base secondaire Neon
+      - key: NEON_DB_CONNECTION
+        value: "pgsql"
+      - key: NEON_DB_HOST
+        value: "ep-gentle-bush-ag4kd3ah-pooler.c-2.eu-central-1.aws.neon.tech"
+      - key: NEON_DB_PORT
+        value: "5432"
+      - key: NEON_DB_DATABASE
+        value: "neondb"
+      - key: NEON_DB_USERNAME
+        value: "neondb_owner"
+      - key: NEON_DB_PASSWORD
+        value: "npg_VBUG5InApT9w"
+
+      - key: CACHE_DRIVER
+        value: "file"
+      - key: QUEUE_CONNECTION
+        value: "database"
+      - key: SESSION_DRIVER
+        value: "file"
+      - key: SESSION_LIFETIME
+        value: "120"
+
+      # Mail
+      - key: MAIL_MAILER
+        value: "smtp"
+      - key: MAIL_HOST
+        value: "smtp.gmail.com"
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        value: "ousmanemarra70@gmail.com"
+      - key: MAIL_PASSWORD
+        value: "svxfviatrbdtiqsu"
+      - key: MAIL_ENCRYPTION
+        value: "tls"
+      - key: MAIL_FROM_ADDRESS
+        value: "ousmane2000marra@gmail.com"
+      - key: MAIL_FROM_NAME
+        value: "Gestion Comptes"
+
+  - type: worker
+    name: gestion-comptes-queue
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: APP_NAME
+        value: "Gestion Comptes"
+      - key: APP_ENV
+        value: "production"
+      - key: APP_KEY
+        value: "base64:y9M6ddqRCRnAiguUaGnJlP7gOdSkt2vevCSxN9WHym0="
+      - key: DB_CONNECTION
+        value: "pgsql"
+      - key: DB_HOST
+        value: "dpg-d3t32h6uk2gs73espqpg-a.frankfurt-postgres.render.com"
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_DATABASE
+        value: "gestion_comptes"
+      - key: DB_USERNAME
+        value: "gestion_comptes_user"
+      - key: DB_PASSWORD
+        value: "rA5ZYVAZzyShxR8ZkG4xJhxf37rrel6Y"
+      - key: QUEUE_CONNECTION
+        value: "database"
