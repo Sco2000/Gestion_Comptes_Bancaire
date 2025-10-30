@@ -28,19 +28,9 @@ COPY --from=composer-build /app/vendor ./vendor
 # Copier le reste du code de l'application
 COPY . .
 
-# Créer les répertoires nécessaires et définir les permissions
-RUN mkdir -p storage/framework/{cache,data,sessions,testing,views} \
-    && mkdir -p storage/logs \
-    && mkdir -p bootstrap/cache \
-    && chown -R laravel:laravel /var/www/html \
-    && chmod -R 775 storage bootstrap/cache
-
 # Générer la clé d'application et optimiser
 USER laravel
-RUN php artisan key:generate --force && \
-    php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan view:cache
+
 USER root
 
 # Copier le script d'entrée
