@@ -35,9 +35,6 @@ RUN mkdir -p storage/framework/{cache,data,sessions,testing,views} \
     && chown -R laravel:laravel /var/www/html \
     && chmod -R 775 storage bootstrap/cache
 
-# Changer les permissions du fichier .env pour l'utilisateur laravel
-RUN chown laravel:laravel .env
-
 # Générer la clé d'application et optimiser
 USER laravel
 RUN php artisan key:generate --force && \
