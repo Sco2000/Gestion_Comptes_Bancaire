@@ -28,10 +28,12 @@ COPY --from=composer-build /app/vendor ./vendor
 # Copier le reste du code de l'application
 COPY . .
 
-# Générer la clé d'application et optimiser
-USER laravel
-
-USER root
+# Créer les répertoires nécessaires et définir les permissions
+RUN mkdir -p storage/framework/{cache,data,sessions,testing,views} \
+    && mkdir -p storage/logs \
+    && mkdir -p bootstrap/cache \
+    && chown -R laravel:laravel storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
 
 # Copier le script d'entrée
 COPY docker-entrypoint.sh /usr/local/bin/
