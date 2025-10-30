@@ -30,7 +30,7 @@ class CompteRequest extends FormRequest
             'client.email' => 'required|email',
             'client.telephone' => ['required', new ValidTelephone()],
             'client.adresse' => 'nullable|string|max:255',
-            'client.nci' => 'nullable|string|max:50|unique:users,nci',
+            'client.nci' => 'nullable|string|max:50',
             'client.date_naissance' => 'nullable|date',
         ];
     }
@@ -47,7 +47,7 @@ class CompteRequest extends FormRequest
             'client.email.required' => 'L\'email du client est obligatoire.',
             'client.email.email' => 'L\'email du client n\'est pas valide.',
             'client.telephone.required' => 'Le téléphone du client est obligatoire.',
-            'client.nci.unique' => 'Ce numéro CNI est déjà utilisé.',
+            // 'client.nci.unique' => 'Ce numéro CNI est déjà utilisé.',
         ];
     }
 }
