@@ -1,10 +1,10 @@
 #!/bin/sh
 set -e
 
-# Vérifier les permissions
+echo "🔧 Vérification des permissions..."
 mkdir -p storage/framework/{cache,data,sessions,testing,views} bootstrap/cache storage/logs
 chown -R laravel:laravel storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 
-# Démarrer le worker
+echo "🚀 Démarrage des workers Laravel..."
 exec php artisan queue:work --tries=3 --timeout=90 --sleep=3 --max-jobs=1000 --verbose
