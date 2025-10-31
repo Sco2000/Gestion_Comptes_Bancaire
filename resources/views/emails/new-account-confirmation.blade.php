@@ -61,7 +61,7 @@
 
         <div class="account-info">
             <div class="info-item">
-                <strong>Numéro de compte :</strong> {{ $compte->numero_compte }}
+                <strong>Numéro de compte :</strong> {{ $compte->numeroCompte }}
             </div>
             <div class="info-item">
                 <strong>Type de compte :</strong> {{ $compte->type === 'epargne' ? 'Épargne' : 'Chèque' }}
@@ -70,7 +70,7 @@
                 <strong>Solde initial :</strong> {{ number_format($compte->solde, 0, ',', ' ') }} FCFA
             </div>
             <div class="info-item">
-                <strong>Date de création :</strong> {{ $compte->date_creation->format('d/m/Y') }}
+                <strong>Date de création :</strong> {{ $compte->created_at->format('d/m/Y') }}
             </div>
             <div class="info-item">
                 <strong>Statut :</strong> Actif

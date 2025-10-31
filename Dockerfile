@@ -36,8 +36,9 @@ RUN mkdir -p storage/framework/{cache,data,sessions,testing,views} \
     && chmod -R 775 storage bootstrap/cache
 
 # Copier le script d'entrée
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+COPY docker-entrypoint-web.sh /usr/local/bin/docker-entrypoint-web.sh
+COPY docker-entrypoint-worker.sh /usr/local/bin/docker-entrypoint-worker.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint-web.sh /usr/local/bin/docker-entrypoint-worker.sh
 
 # Passer à l'utilisateur non-root
 USER laravel
@@ -46,7 +47,7 @@ USER laravel
 EXPOSE 8000
 
 # Définir l'entrée du conteneur
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+# ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
-# Commande par défaut
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# # Commande par défaut
+# CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
