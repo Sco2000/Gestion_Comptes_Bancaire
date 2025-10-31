@@ -1,19 +1,17 @@
-# Étape 1: Build des dépendances PHP
+# Étape 1 : Build des dépendances PHP
 FROM composer:2.6 AS composer-build
 
 WORKDIR /app
 
-# Copier les fichiers de dépendances
 COPY composer.json composer.lock ./
 
-# Installer les dépendances PHP sans scripts post-install
 RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts
 
-# Étape 2: Image finale pour l'application
+# Étape 2 : Image finale
 FROM php:8.3-fpm-alpine
 
-# Installer les extensions PHP nécessaires
-RUN apk add --no-cache postgresql-dev \
+# Installer les extensions PHP nécessaires et Nginx
+RUN apk add --no-cache postgresql-dev nginx supervisor bash \
     && docker-php-ext-install pdo pdo_pgsql
 
 # Créer un utilisateur non-root
@@ -22,20 +20,19 @@ RUN addgroup -g 1000 laravel && adduser -G laravel -g laravel -s /bin/sh -D lara
 # Définir le répertoire de travail
 WORKDIR /var/www/html
 
-# Copier les dépendances installées depuis l'étape de build
+# Copier les dépendances et le code
 COPY --from=composer-build /app/vendor ./vendor
-
-# Copier le reste du code de l'application
 COPY . .
 
-# Créer les répertoires nécessaires et définir les permissions
-RUN mkdir -p storage/framework/{cache,data,sessions,testing,views} \
-    && mkdir -p storage/logs \
-    && mkdir -p bootstrap/cache \
+# Configurer Nginx
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Créer les répertoires nécessaires et permissions
+RUN mkdir -p storage/framework/{cache,data,sessions,testing,views} bootstrap/cache storage/logs \
     && chown -R laravel:laravel storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
-# Copier le script d'entrée
+# Copier scripts d'entrée
 COPY docker-entrypoint-web.sh /usr/local/bin/docker-entrypoint-web.sh
 COPY docker-entrypoint-worker.sh /usr/local/bin/docker-entrypoint-worker.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint-web.sh /usr/local/bin/docker-entrypoint-worker.sh
@@ -43,11 +40,8 @@ RUN chmod +x /usr/local/bin/docker-entrypoint-web.sh /usr/local/bin/docker-entry
 # Passer à l'utilisateur non-root
 USER laravel
 
-# Exposer le port 8000
-EXPOSE 8000
+# Exposer le port HTTP standard
+EXPOSE 80
 
-# # Définir l'entrée du conteneur
-# ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-
-# # Commande par défaut
-# CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# Entrypoint
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint-web.sh"]
