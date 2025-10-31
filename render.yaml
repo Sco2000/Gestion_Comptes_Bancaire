@@ -5,7 +5,6 @@ services:
     plan: free
     dockerfilePath: ./Dockerfile
     entrypoint: /usr/local/bin/docker-entrypoint-web.sh
-    cmd: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
     envVars:
       - key: APP_NAME
         value: "Gestion Comptes"
@@ -83,7 +82,6 @@ services:
     plan: free
     dockerfilePath: ./Dockerfile
     entrypoint: /usr/local/bin/docker-entrypoint-worker.sh
-    cmd: []
     envVars:
       - key: APP_NAME
         value: "Gestion Comptes"

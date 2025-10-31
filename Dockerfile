@@ -10,7 +10,7 @@ COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts
 
 # Étape 2: Image finale pour l'application
-FROM php:8.3-fpm-alpine
+FROM php:8.3-cli-alpine
 
 # Installer les extensions PHP nécessaires
 RUN apk add --no-cache postgresql-dev \
@@ -46,7 +46,7 @@ USER laravel
 # Exposer le port 8000
 EXPOSE 8000
 
-# Définir l'entrée du conteneur
+# # Définir l'entrée du conteneur
 # ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 # # Commande par défaut

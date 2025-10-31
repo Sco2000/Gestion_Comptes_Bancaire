@@ -1,15 +1,15 @@
-# 🔑 Gestion des clés Passport
+#!/bin/sh
+set -e
+
+echo "🔑 Vérification des clés Passport..."
 if [ ! -f "storage/oauth-private.key" ] || [ ! -f "storage/oauth-public.key" ]; then
-  echo "🔑 Génération des clés Passport..."
   php artisan passport:install --force
-else
-  echo "✅ Clés Passport déjà présentes."
 fi
 
-echo "Starting queue workers..."
-# Démarrer les workers de queue en arrière-plan
-php artisan queue:work --tries=3 --timeout=90 --sleep=3 --max-jobs=1000 --verbose &
-echo $! > /tmp/laravel-queue-worker.pid
+echo "🔧 Vérification des permissions..."
+mkdir -p storage/framework/{cache,data,sessions,testing,views} bootstrap/cache storage/logs
+chown -R laravel:laravel storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
 
-echo "Starting Laravel application..."
-exec "$@"
+echo "🚀 Démarrage du serveur Laravel..."
+exec php artisan serve --host=0.0.0.0 --port=8000
