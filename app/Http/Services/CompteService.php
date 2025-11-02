@@ -29,7 +29,7 @@ class CompteService
             $filters['client_id'] = $user->client->id;
         }
 
-        return $this->repository->getAll($filters, $sort, $order, $limit, $user);
+        return $this->repository->getAll($filters, $sort, $order, $limit);
     }
 
     /**
@@ -229,6 +229,28 @@ class CompteService
         }
 
         return $this->repository->update($id, $data);
+    }
+
+    /**
+     * Récupérer un compte par numéro de compte
+     *
+     * @param string $numeroCompte
+     * @return Compte|null
+     */
+    public function getCompteByNumero(string $numeroCompte): ?Compte
+    {
+        return $this->repository->findByNumeroCompte($numeroCompte);
+    }
+
+    /**
+     * Récupérer un compte par numéro de compte en incluant les archivés
+     *
+     * @param string $numeroCompte
+     * @return Compte|null
+     */
+    public function getCompteByNumeroWithArchived(string $numeroCompte): ?Compte
+    {
+        return $this->repository->findByNumeroCompteWithArchived($numeroCompte);
     }
 
     /**

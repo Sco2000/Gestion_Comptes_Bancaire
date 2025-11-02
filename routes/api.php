@@ -25,8 +25,9 @@ Route::prefix('v1')->group(function(){
 
     // Routes des comptes avec authentification et autorisation
     Route::middleware(['auth:api'])->group(function() {
-        Route::get('/comptes', [CompteController::class, 'index'])->middleware('role:admin');
+        Route::get('/comptes', [CompteController::class, 'index'])->middleware('role:admin,client');
         Route::get('/comptes/{compteId}', [CompteController::class, 'show'])->middleware('role:admin,client');
+        Route::get('/comptes/numero/{numeroCompte}', [CompteController::class, 'showByNumero'])->middleware('role:admin,client');
         Route::post('/comptes', [CompteController::class, 'store'])->middleware('role:admin');
         Route::put('/comptes/{id}', [CompteController::class, 'update'])->middleware('role:admin');
         Route::delete('/comptes/{id}', [CompteController::class, 'destroy'])->middleware('role:admin');
@@ -34,5 +35,9 @@ Route::prefix('v1')->group(function(){
     });
 
     // Routes des clients
-    Route::patch('/clients/{compteId}', [ClientController::class, 'update']);
+    Route::middleware(['auth:api'])->group(function() {
+        Route::patch('/clients/{compteId}', [ClientController::class, 'update']);
+        Route::get('/clients/telephone/{telephone}', [ClientController::class, 'showByTelephone'])->middleware('role:admin');
+        Route::get('/clients/nci/{nci}', [ClientController::class, 'showByNci'])->middleware('role:admin');
+    });
 });

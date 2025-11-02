@@ -65,6 +65,8 @@ class User extends Authenticatable
         'actif' => 'boolean',
     ];
 
+    protected $with = ['client', 'admin'];
+
     protected static function boot()
     {
         parent::boot();

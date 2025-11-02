@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Services\ClientService;
 use App\Models\Client;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -12,6 +13,11 @@ use App\Exceptions\CustomApiException;
 
 class ClientController extends Controller
 {
+    public function __construct(ClientService $clientService)
+    {
+        $this->clientService = $clientService;
+    }
+
     /**
      * @OA\Patch(
      *     path="/api/v1/clients/{compteId}",
@@ -141,6 +147,138 @@ class ClientController extends Controller
                 'Erreur de validation',
                 $e->errors()
             );
+        } catch (\Throwable $e) {
+            throw $e; // Let the middleware handle it
+        }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/clients/telephone/{telephone}",
+     *     summary="Obtenir les détails d'un client par téléphone",
+     *     description="Récupère les informations détaillées d'un client en utilisant son numéro de téléphone",
+     *     operationId="getClientByTelephone",
+     *     tags={"Clients"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="telephone",
+     *         in="path",
+     *         required=true,
+     *         description="Numéro de téléphone du client",
+     *         @OA\Schema(type="string", example="+221771234567")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Détails du client récupérés",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="id", type="string", example="uuid"),
+     *                 @OA\Property(property="prenom", type="string", nullable=true, example="John"),
+     *                 @OA\Property(property="nom", type="string", example="Doe"),
+     *                 @OA\Property(property="email", type="string", example="john.doe@example.com"),
+     *                 @OA\Property(property="telephone", type="string", example="+221771234567"),
+     *                 @OA\Property(property="nci", type="string", nullable=true, example="1234567890123"),
+     *                 @OA\Property(property="client", type="object",
+     *                     @OA\Property(property="id", type="string", example="uuid"),
+     *                     @OA\Property(property="adresse", type="string", nullable=true, example="123 Main St"),
+     *                     @OA\Property(property="date_naissance", type="string", format="date", nullable=true, example="1990-01-01")
+     *                 )
+     *             ),
+     *             @OA\Property(property="message", type="string", example="Détails du client")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Client non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Client non trouvé")
+     *         )
+     *     )
+     * )
+     */
+    public function showByTelephone(Request $request, string $telephone)
+    {
+        try {
+            $user = $this->clientService->getClientByTelephone($telephone);
+
+            if (!$user) {
+                throw new CustomApiException(
+                    ErrorCode::CLIENT_NOT_FOUND,
+                    HttpStatusCode::NOT_FOUND,
+                    'Client non trouvé avec ce numéro de téléphone',
+                    ['telephone' => $telephone]
+                );
+            }
+
+            $user->load('client');
+            return $this->successResponse($user, 'Détails du client');
+        } catch (\Throwable $e) {
+            throw $e; // Let the middleware handle it
+        }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/clients/nci/{nci}",
+     *     summary="Obtenir les détails d'un client par NCI",
+     *     description="Récupère les informations détaillées d'un client en utilisant son numéro NCI",
+     *     operationId="getClientByNci",
+     *     tags={"Clients"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="nci",
+     *         in="path",
+     *         required=true,
+     *         description="Numéro NCI du client",
+     *         @OA\Schema(type="string", example="1234567890123")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Détails du client récupérés",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="id", type="string", example="uuid"),
+     *                 @OA\Property(property="prenom", type="string", nullable=true, example="John"),
+     *                 @OA\Property(property="nom", type="string", example="Doe"),
+     *                 @OA\Property(property="email", type="string", example="john.doe@example.com"),
+     *                 @OA\Property(property="telephone", type="string", example="+221771234567"),
+     *                 @OA\Property(property="nci", type="string", nullable=true, example="1234567890123"),
+     *                 @OA\Property(property="client", type="object",
+     *                     @OA\Property(property="id", type="string", example="uuid"),
+     *                     @OA\Property(property="adresse", type="string", nullable=true, example="123 Main St"),
+     *                     @OA\Property(property="date_naissance", type="string", format="date", nullable=true, example="1990-01-01")
+     *                 )
+     *             ),
+     *             @OA\Property(property="message", type="string", example="Détails du client")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Client non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Client non trouvé")
+     *         )
+     *     )
+     * )
+     */
+    public function showByNci(Request $request, string $nci)
+    {
+        try {
+            $user = $this->clientService->getClientByNci($nci);
+
+            if (!$user) {
+                throw new CustomApiException(
+                    ErrorCode::CLIENT_NOT_FOUND,
+                    HttpStatusCode::NOT_FOUND,
+                    'Client non trouvé avec ce numéro NCI',
+                    ['nci' => $nci]
+                );
+            }
+
+            $user->load('client');
+            return $this->successResponse($user, 'Détails du client');
         } catch (\Throwable $e) {
             throw $e; // Let the middleware handle it
         }

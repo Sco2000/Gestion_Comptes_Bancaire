@@ -15,21 +15,32 @@ class RoleMiddleware
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      * @param  string  $role
      */
-    public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, ...$roles): Response
     {
+        // dd($roles);
         $user = Auth::guard('api')->user();
-
+        
         if (!$user) {
             return response()->json(['message' => 'Non autorisé'], 401);
         }
 
         // Vérifier le rôle de l'utilisateur
-        $userRole = $user->isAdmin() ? 'admin' : 'client';
+        $userRole = $user->isAdmin() ? 'admin' : ($user->isClient() ? 'client' : 'user');
+        
+        // Support pour plusieurs rôles séparés par des virgules
+        $allowedRoles = $roles;
+        // dd("ok");
+        
 
-        if ($userRole !== $role) {
-            return response()->json(['message' => 'Accès refusé'], 403);
+        // dd($user, $roles, $allowedRoles, $userRole);
+        if (!in_array($userRole, $allowedRoles)) {
+            return response()->json([
+                'message' => 'Accès refusé',
+                'role_detecte' => $userRole,
+                'roles_autorises' => $allowedRoles
+            ], 403);
         }
-
+        
         // Ajouter les permissions aux claims du token
         $permissions = $this->getUserPermissions($user);
         $request->merge(['permissions' => $permissions]);

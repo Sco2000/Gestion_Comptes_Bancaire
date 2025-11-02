@@ -13,13 +13,13 @@ class CompteRepository
         $this->model = $compte;
     }
 
-    public function getAll(array $filters = [], $sort = 'created_at', $order = 'desc', $limit = 10, $user = null)
+    public function getAll(array $filters = [], $sort = 'created_at', $order = 'desc', $limit = 10)
     {
         $query = $this->model->query();
 
-        // if ($user && !$user->isAdmin()) {
-        //     $query->where('client_id', $user->id);
-        // }
+        if (!empty($filters['client_id'])) {
+            $query->where('client_id', $filters['client_id']);
+        }
 
         if (!empty($filters['type'])) {
             $query->where('type', $filters['type']);
@@ -101,6 +101,30 @@ class CompteRepository
             $compte->update($data);
         }
         return $compte;
+    }
+
+    /**
+     * Trouver un compte par numéro de compte
+     *
+     * @param string $numeroCompte
+     * @return Compte|null
+     */
+    public function findByNumeroCompte(string $numeroCompte): ?Compte
+    {
+        return $this->model->where('numero_compte', $numeroCompte)->first();
+    }
+
+    /**
+     * Trouver un compte par numéro de compte en incluant les archivés
+     *
+     * @param string $numeroCompte
+     * @return Compte|null
+     */
+    public function findByNumeroCompteWithArchived(string $numeroCompte): ?Compte
+    {
+        return $this->model->withoutGlobalScope(\App\Models\Scopes\NonArchiveScope::class)
+                          ->where('numero_compte', $numeroCompte)
+                          ->first();
     }
 
     /**

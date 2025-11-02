@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Client;
+use Illuminate\Support\Str;
 use App\Models\Scopes\NonArchiveScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,7 +29,7 @@ class Compte extends Model
         static::addGlobalScope(new NonArchiveScope);
         static::creating(function ($model) {
             if (empty($model->id)) {
-                $model->id = (string) \Illuminate\Support\Str::uuid();
+                $model->id = (string) Str::uuid();
             }
         });
 

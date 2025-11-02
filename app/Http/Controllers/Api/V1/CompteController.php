@@ -129,11 +129,11 @@ class CompteController extends Controller
 
             // Pour les clients, filtrer seulement leurs comptes
             $clientId = null;
-            if ($user->isClient()) {
+            if ($user && $user->isClient()) {
                 $clientId = $user->client->id;
             }
 
-            $comptes = $this->compteService->listComptes($filters, $sort, $order, $limit, $clientId);
+            $comptes = $this->compteService->listComptes($filters, $sort, $order, $limit, $user);
 
             // Si on demande les comptes bloqués, ajouter ceux de Neon
             if (isset($filters['statut']) && $filters['statut'] === 'bloque') {
@@ -470,6 +470,110 @@ class CompteController extends Controller
             $this->compteService->archiveCompte($id);
 
             return $this->successResponse(null, 'Compte archivé avec succès');
+        } catch (\Throwable $e) {
+            throw $e; // Let the middleware handle it
+        }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/comptes/numero/{numeroCompte}",
+     *     summary="Obtenir les détails d'un compte par numéro",
+     *     description="Récupère les informations détaillées d'un compte bancaire spécifique en utilisant son numéro de compte. Recherche d'abord dans la base principale, puis dans Neon pour les comptes bloqués.",
+     *     operationId="getCompteByNumero",
+     *     tags={"Comptes"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="numeroCompte",
+     *         in="path",
+     *         required=true,
+     *         description="Numéro du compte bancaire",
+     *         @OA\Schema(type="string", example="CPT-123456")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Détails du compte récupérés",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="id", type="string", example="uuid"),
+     *                 @OA\Property(property="numeroCompte", type="string", example="CPT-123456"),
+     *                 @OA\Property(property="titulaire", type="string", example="John Doe"),
+     *                 @OA\Property(property="type", type="string", example="cheque"),
+     *                 @OA\Property(property="solde", type="number", example=50000),
+     *                 @OA\Property(property="statut", type="string", enum={"actif", "bloque", "supprimé"}, example="actif")
+     *             ),
+     *             @OA\Property(property="message", type="string", example="Détails du compte")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Non authentifié",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Accès refusé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Accès refusé")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Compte non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Compte non trouvé")
+     *         )
+     *     )
+     * )
+     */
+    public function showByNumero(Request $request, string $numeroCompte)
+    {
+        try {
+            $user = auth()->user();
+
+            // Essayer d'abord de récupérer le compte non archivé
+            $compte = $this->compteService->getCompteByNumero($numeroCompte);
+
+            // Si non trouvé, essayer avec les archivés
+            if (!$compte) {
+                $compte = $this->compteService->getCompteByNumeroWithArchived($numeroCompte);
+            }
+
+            // Si toujours pas trouvé, chercher dans Neon (comptes bloqués)
+            if (!$compte) {
+                $neonCompte = DB::connection('neon')->table('comptes')->where('numero_compte', $numeroCompte)->first();
+                if ($neonCompte) {
+                    // Convertir l'objet stdClass en array pour créer une instance Compte temporaire
+                    $compteData = (array) $neonCompte;
+                    $compte = new Compte($compteData);
+                }
+            }
+
+            // Si toujours pas trouvé, retourner une erreur 404
+            if (!$compte) {
+                throw new CustomApiException(
+                    ErrorCode::COMPTE_NOT_FOUND,
+                    HttpStatusCode::NOT_FOUND,
+                    null,
+                    ['numeroCompte' => $numeroCompte]
+                );
+            }
+
+            // Pour les clients, vérifier que le compte leur appartient
+            if ($user->isClient() && $compte->client_id !== $user->client->id) {
+                throw new CustomApiException(
+                    ErrorCode::ACCESS_DENIED,
+                    HttpStatusCode::FORBIDDEN,
+                    'Vous n\'avez pas accès à ce compte',
+                    []
+                );
+            }
+
+            $compteResource = app(CompteResource::class, ['compte' => $compte]);
+            return $this->successResponse($compteResource, 'Détails du compte');
         } catch (\Throwable $e) {
             throw $e; // Let the middleware handle it
         }
